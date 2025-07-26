@@ -1,0 +1,159 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #282c34;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+.App {
+  text-align: center;
+  color: white;
+}
+
+.App-header {
+  background-color: #222;
+  padding: 20px;
+  border-radius: 5px;
+}
+
+.App-main {
+  padding: 20px;
+}
+
+.record-button {
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  margin: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.start {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.stop {
+  background-color: #f44336;
+  color: white;
+}
+
+.processing {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  color: #FF5959;
+  margin-top: 10px;
+}
+
+.current-response {
+  margin-top: 20px;
+}
+
+.history-list {
+  text-align: left;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.history-item {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clear-button {
+  border: none;
+  padding: 5px 10px;
+  font-size: 14px;
+  background-color: #FF5959;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.play-button {
+  margin-left: 10px;
+  background: #6C63FF;
+  color: white;
+}
+
+/* Language Selector Styles */
+.language-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  gap: 10px;
+}
+
+.language-selector label {
+  font-weight: bold;
+  color: #fff;
+  font-size: 16px;
+}
+
+.language-dropdown {
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 2px solid #6C63FF;
+  background: #fff;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  min-width: 200px;
+  transition: all 0.3s ease;
+}
+
+.language-dropdown:hover {
+  border-color: #5a54d4;
+  box-shadow: 0 2px 5px rgba(108, 99, 255, 0.3);
+}
+
+.language-dropdown:focus {
+  outline: none;
+  border-color: #4c46c4;
+  box-shadow: 0 0 10px rgba(108, 99, 255, 0.5);
+}
