@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import speech_recognition as sr
-from gtts import gTTS
+import edge_tts
+import asyncio
 import os
 import uuid
 import tempfile
@@ -83,13 +84,13 @@ LANGUAGE_CONFIG = {
     'en': {
         'name': 'English',
         'speech_code': 'en-US',
-        'tts_code': 'en',
+        'tts_voice': 'en-US-AriaNeural',
         'echo_template': "You said: {text}. This is a response from the AI assistant at {time}."
     },
     'bn': {
         'name': 'Bengali',
         'speech_code': 'bn-BD',
-        'tts_code': 'bn',
+        'tts_voice': 'bn-BD-NabanitaNeural',
         'echo_template': "আপনি বলেছেন: {text}। এটি AI সহায়কের প্রতিক্রিয়া, সময়: {time}।"
     }
 }
@@ -184,13 +185,16 @@ def process_audio():
             return jsonify({'error': 'Could not understand audio'}), 400
         except sr.RequestError as e:
             return jsonify({'error': f'Speech recognition error: {str(e)}'}), 500
-        print('user text: ', user_text)
+        
         # Get LLM response
         llm_response = get_llm_response(user_text, language)
         
         # Convert LLM response to speech
-        tts = gTTS(text=llm_response, lang=lang_config['tts_code'], slow=False)
-        tts.save(temp_output_path)
+        async def convert_to_speech():
+            communicate = edge_tts.Communicate(text=llm_response, voice=lang_config['tts_voice'])
+            await communicate.save(temp_output_path)
+        
+        asyncio.run(convert_to_speech())
         
         # Clean up input file
         os.remove(temp_input_path)
