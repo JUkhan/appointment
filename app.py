@@ -1,5 +1,8 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
 import speech_recognition as sr
 import edge_tts
 import asyncio
@@ -9,13 +12,70 @@ import tempfile
 import io
 from pydub import AudioSegment
 from pydub.utils import which
-from datetime import datetime
+from datetime import datetime, timedelta
 import wave
 import subprocess
 import shutil
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
+
+# Configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///appointment_system.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'your-secret-key-change-in-production'  # Change this in production
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+# Comprehensive JWT configuration to disable CSRF
+app.config['JWT_TOKEN_LOCATION'] = ['headers']
+app.config['JWT_HEADER_NAME'] = 'Authorization'
+app.config['JWT_HEADER_TYPE'] = 'Bearer'
+app.config['JWT_CSRF_PROTECT'] = False
+app.config['JWT_CSRF_IN_COOKIES'] = False
+app.config['JWT_CSRF_CHECK_FORM'] = False
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+
+# Initialize extensions
+db = SQLAlchemy(app)
+jwt = JWTManager(app)
+
+# JWT Error handlers
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({'error': 'Token has expired'}), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    return jsonify({'error': 'Invalid token'}), 422
+
+@jwt.unauthorized_loader
+def unauthorized_callback(error):
+    return jsonify({'error': 'Authorization token is required'}), 422
+
+# Models
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(120), nullable=False)
+    appointments = db.relationship('Appointment', backref='user', lazy=True)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+class Doctor(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    availability = db.Column(db.String(120), nullable=False)
+    appointments = db.relationship('Appointment', backref='doctor', lazy=True)
+
+class Appointment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String(120), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=False)
 
 # Initialize speech recognizer
 recognizer = sr.Recognizer()
@@ -237,9 +297,232 @@ def cleanup_audio(audio_id):
     except Exception as e:
         return jsonify({'error': f'Cleanup error: {str(e)}'}), 500
 
+# Authentication Routes
+
+@app.route('/register', methods=['POST'])
+def register():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+        
+        if User.query.filter_by(username=username).first():
+            return jsonify({'error': 'Username already exists'}), 400
+        
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        
+        return jsonify({'message': 'User registered successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            # Create token with string identity (required for proper JWT validation)
+            access_token = create_access_token(identity=str(user.id), fresh=False)
+            print(f"Created token for user {user.id}: {access_token[:50]}...")
+            
+            # Debug token structure
+            import jwt as pyjwt
+            try:
+                decoded = pyjwt.decode(access_token, options={"verify_signature": False})
+                print(f"Token payload: {decoded}")
+            except Exception as decode_error:
+                print(f"Failed to decode token: {decode_error}")
+            
+            return jsonify({'access_token': access_token, 'user_id': user.id}), 200
+        
+        return jsonify({'error': 'Invalid credentials'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Doctor Routes
+
+@app.route('/doctors', methods=['GET'])
+def get_doctors():
+    try:
+        doctors = Doctor.query.all()
+        return jsonify([{
+            'id': doctor.id,
+            'name': doctor.name,
+            'availability': doctor.availability
+        } for doctor in doctors])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/doctors', methods=['POST'])
+@jwt_required()
+def add_doctor():
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        availability = data.get('availability')
+        
+        if not name or not availability:
+            return jsonify({'error': 'Name and availability are required'}), 400
+        
+        doctor = Doctor(name=name, availability=availability)
+        db.session.add(doctor)
+        db.session.commit()
+        
+        return jsonify({
+            'id': doctor.id,
+            'name': doctor.name,
+            'availability': doctor.availability
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Appointment Routes
+
+@app.route('/appointments', methods=['POST'])
+@jwt_required()
+def book_appointment():
+    try:
+        user_id_str = get_jwt_identity()
+        user_id = int(user_id_str)  # Convert string back to int for database
+        print(f"Book appointment request from user {user_id}")
+        
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+        
+        print(f"Appointment data: {data}")
+        
+        doctor_id = data.get('doctor_id')
+        date = data.get('date')
+        
+        if not doctor_id or not date:
+            print("Missing doctor_id or date")
+            return jsonify({'error': 'Doctor ID and date are required'}), 400
+        
+        # Check if doctor exists
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            return jsonify({'error': 'Doctor not found'}), 404
+        
+        # Check if appointment already exists for this date and doctor
+        existing_appointment = Appointment.query.filter_by(
+            doctor_id=doctor_id, date=date
+        ).first()
+        
+        if existing_appointment:
+            return jsonify({'error': 'This time slot is already booked'}), 400
+        
+        appointment = Appointment(
+            user_id=user_id,
+            doctor_id=doctor_id,
+            date=date
+        )
+        
+        db.session.add(appointment)
+        db.session.commit()
+        
+        return jsonify({
+            'id': appointment.id,
+            'doctor_name': doctor.name,
+            'date': appointment.date,
+            'message': 'Appointment booked successfully'
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/appointments', methods=['GET'])
+@jwt_required()
+def get_user_appointments():
+    try:
+        user_id_str = get_jwt_identity()
+        user_id = int(user_id_str)  # Convert string back to int for database
+        appointments = db.session.query(Appointment, Doctor).join(
+            Doctor, Appointment.doctor_id == Doctor.id
+        ).filter(Appointment.user_id == user_id).all()
+        
+        return jsonify([{
+            'id': appointment.id,
+            'doctor_name': doctor.name,
+            'date': appointment.date
+        } for appointment, doctor in appointments])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/appointments/<int:appointment_id>', methods=['DELETE'])
+@jwt_required()
+def cancel_appointment(appointment_id):
+    try:
+        user_id_str = get_jwt_identity()
+        user_id = int(user_id_str)  # Convert string back to int for database
+        appointment = Appointment.query.filter_by(
+            id=appointment_id, user_id=user_id
+        ).first()
+        
+        if not appointment:
+            return jsonify({'error': 'Appointment not found'}), 404
+        
+        db.session.delete(appointment)
+        db.session.commit()
+        
+        return jsonify({'message': 'Appointment cancelled successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/test-jwt', methods=['GET'])
+@jwt_required()
+def test_jwt():
+    try:
+        user_id = get_jwt_identity()
+        return jsonify({
+            'status': 'success',
+            'message': 'JWT token is valid',
+            'user_id': user_id
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'healthy', 'message': 'Speech-to-text service is running'})
+    return jsonify({'status': 'healthy', 'message': 'Speech-to-text and appointment booking service is running'})
+
+# Initialize database and add sample data
+def init_db():
+    """Initialize database and add sample doctors"""
+    with app.app_context():
+        db.create_all()
+        
+        # Add sample doctors if they don't exist
+        if Doctor.query.count() == 0:
+            sample_doctors = [
+                Doctor(name="Dr. John Smith", availability="Mon-Fri 9AM-5PM"),
+                Doctor(name="Dr. Sarah Johnson", availability="Tue-Thu 10AM-6PM"),
+                Doctor(name="Dr. Michael Brown", availability="Mon, Wed, Fri 8AM-4PM"),
+                Doctor(name="Dr. Emily Davis", availability="Mon-Sat 9AM-3PM")
+            ]
+            
+            for doctor in sample_doctors:
+                db.session.add(doctor)
+            
+            db.session.commit()
+            print("✅ Sample doctors added to database")
+        
+        print("✅ Database initialized successfully")
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)
