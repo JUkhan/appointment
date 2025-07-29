@@ -16,6 +16,11 @@ from datetime import datetime, timedelta
 import wave
 import subprocess
 import shutil
+from dotenv import load_dotenv
+
+load_dotenv()
+from agent.app import run_chatbot
+
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
@@ -179,7 +184,18 @@ def get_llm_response(text, language='en'):
     # except Exception as e:
     #     return f"Sorry, I couldn't process your request: {str(e)}"
 
+@app.route('/api/chatbot', methods=['POST'])
+def chat():
+    user_input = request.json.get('user_input')
+    thread_id = request.json.get('thread_id')
+    if not user_input:
+        return jsonify({"error": "user_input is required"}), 400
+    
+    response = run_chatbot(user_input, thread_id)
+    return jsonify({"response": response})
+
 @app.route('/process-audio', methods=['POST'])
+@jwt_required()
 def process_audio():
     try:
         # Get audio file and language from request
@@ -247,7 +263,10 @@ def process_audio():
             return jsonify({'error': f'Speech recognition error: {str(e)}'}), 500
         
         # Get LLM response
-        llm_response = get_llm_response(user_text, language)
+        user_id_str = get_jwt_identity()
+        print('user id:', user_id_str)
+        #llm_response = get_llm_response(user_text, language)
+        llm_response = run_chatbot(user_text, user_id_str)
         
         # Convert LLM response to speech
         async def convert_to_speech():
