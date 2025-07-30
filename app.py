@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
+#from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
-from werkzeug.security import generate_password_hash, check_password_hash
+
 import speech_recognition as sr
 import edge_tts
 import asyncio
@@ -17,6 +17,8 @@ import wave
 import subprocess
 import shutil
 from dotenv import load_dotenv
+from db import db
+from models import User, Doctor, Appointment
 
 load_dotenv()
 from agent.app import run_chatbot
@@ -40,7 +42,8 @@ app.config['JWT_CSRF_CHECK_FORM'] = False
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 
 # Initialize extensions
-db = SQLAlchemy(app)
+#db = SQLAlchemy(app)
+db.init_app(app)
 jwt = JWTManager(app)
 
 # JWT Error handlers
@@ -56,31 +59,6 @@ def invalid_token_callback(error):
 def unauthorized_callback(error):
     return jsonify({'error': 'Authorization token is required'}), 422
 
-# Models
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
-    appointments = db.relationship('Appointment', backref='user', lazy=True)
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class Doctor(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    availability = db.Column(db.String(120), nullable=False)
-    appointments = db.relationship('Appointment', backref='doctor', lazy=True)
-
-class Appointment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.String(120), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=False)
 
 # Initialize speech recognizer
 recognizer = sr.Recognizer()
@@ -528,10 +506,10 @@ def init_db():
         # Add sample doctors if they don't exist
         if Doctor.query.count() == 0:
             sample_doctors = [
-                Doctor(name="Dr. John Smith", availability="Mon-Fri 9AM-5PM"),
-                Doctor(name="Dr. Sarah Johnson", availability="Tue-Thu 10AM-6PM"),
-                Doctor(name="Dr. Michael Brown", availability="Mon, Wed, Fri 8AM-4PM"),
-                Doctor(name="Dr. Emily Davis", availability="Mon-Sat 9AM-3PM")
+                Doctor(name="Prof. Dr. Sharmin Rahman", skills ='M B B S (D A C), F C P S (OBS & Gynae)', availability="Mon-Fri 9AM-5PM"),
+                Doctor(name="Dr. Rokeya Khatun", skills ='MBBS, MCPS (Gynae & Obs), DGO', availability="Tue-Thu 10AM-6PM"),
+                Doctor(name="DR. MIR JAKIB HOSSAIN", skills ='MBBS, FCPS (MEDICINE), MD (GASTRO).', availability="Mon, Wed, Fri 8AM-4PM"),
+                Doctor(name="DR. RASHIDUL HASAN SHAFIN", skills ='MBBS, BCS (HEALTH), FCPS (PEDIATRICS), FCPS PART-2 (NEWBORN)', availability="Mon-Sat 9AM-3PM")
             ]
             
             for doctor in sample_doctors:

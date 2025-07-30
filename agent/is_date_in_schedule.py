@@ -1,4 +1,3 @@
-import dateparser
 from datetime import datetime
 
 def is_date_in_schedule(date_str, schedule_str):
@@ -72,24 +71,3 @@ def is_date_in_schedule(date_str, schedule_str):
     # Check if the date's weekday is in the schedule
     # Use the actual parsed weekday for accuracy
     return actual_weekday in schedule_weekdays
-
-if __name__ == '__main__':
-  print('example:::')
-  structured_dates = ["Monday, December 25, 2023", "Tuesday, December 26, 2023"]
-  for date_str in structured_dates: 
-    dt = dateparser.parse(date_str)
-    print(dt.strftime('%a, %B %d, %Y'))
-  test_date = "Mon, December 25, 2023"
-    
-  schedule1 = "Mon-Fri 9AM-5PM"
-  schedule2 = "Mon, Wed, Fri 8AM-4PM"
-  schedule3 = "Tue, Thu 10AM-6PM"
-  
-  print(f"Date: {test_date}")
-  print(f"Schedule 1 '{schedule1}': {is_date_in_schedule(test_date, schedule1)}")
-  print(f"Schedule 2 '{schedule2}': {is_date_in_schedule(test_date, schedule2)}")
-  print(f"Schedule 3 '{schedule3}': {is_date_in_schedule(test_date, schedule3)}")
-  
-  # Verify the actual weekday of the test date
-  parsed = datetime.strptime("December 25, 2023", "%B %d, %Y")
-  print(f"Actual weekday of December 25, 2023: {parsed.strftime('%A')} ({parsed.strftime('%a')})")

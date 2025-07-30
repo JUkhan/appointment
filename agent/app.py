@@ -12,6 +12,10 @@ def print_stream(stream):
         else:
             message.pretty_print()
 
+def clear_all_message(thread_id):
+    config = {"configurable": {"thread_id": thread_id}}
+    current_state = app.get_state(config).values
+    current_state['messages'].clear()
 
 def run_chatbot(user_input, thread_id):
     if not thread_id:
@@ -22,8 +26,7 @@ def run_chatbot(user_input, thread_id):
     # Initialize state if it doesn't exist
     if not current_state.values:
         initial_state = {
-            "messages": [
-                ('human','patient id:'+thread_id)]
+            "messages": [('human',f'user_id: {thread_id}')]
         }
     else:
         initial_state = current_state.values
@@ -42,8 +45,7 @@ def run_chatbot2(user_input, thread_id):
     # Initialize state if it doesn't exist
     if not current_state.values:
         initial_state = {
-            "messages": [
-                ('human','patient id:'+thread_id)]
+            "messages": [('human',f'user_id: {thread_id}')]
         }
     else:
         initial_state = current_state.values
