@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 #from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
-
+from gtts import gTTS
 import speech_recognition as sr
 import edge_tts
 import asyncio
@@ -128,12 +128,14 @@ LANGUAGE_CONFIG = {
         'name': 'English',
         'speech_code': 'en-US',
         'tts_voice': 'en-US-AriaNeural',
+        'tts_code': 'en',
         'echo_template': "You said: {text}. This is a response from the AI assistant at {time}."
     },
     'bn': {
         'name': 'Bengali',
         'speech_code': 'bn-BD',
         'tts_voice': 'bn-BD-NabanitaNeural',
+        'tts_code': 'bn',
         'echo_template': "আপনি বলেছেন: {text}। এটি AI সহায়কের প্রতিক্রিয়া, সময়: {time}।"
     }
 }
@@ -246,12 +248,20 @@ def process_audio():
         #llm_response = get_llm_response(user_text, language)
         llm_response = run_chatbot(user_text, user_id_str)
         
+        speech_text= llm_response
+        if(len(llm_response)>200):
+            speech_text='Read the following text carefully and response accordingly:'
+            llm_response =f'## {speech_text}\n{llm_response}'
+
         # Convert LLM response to speech
         async def convert_to_speech():
-            communicate = edge_tts.Communicate(text=llm_response, voice=lang_config['tts_voice'])
+            communicate = edge_tts.Communicate(text=speech_text, voice=lang_config['tts_voice'])
             await communicate.save(temp_output_path)
-        
         asyncio.run(convert_to_speech())
+
+        # tts = gTTS(text=speech_text, lang=lang_config['tts_code'], slow=False)
+        # tts.save(temp_output_path)
+        
         
         # Clean up input file
         os.remove(temp_input_path)

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Mic, MicOff, Volume2, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 const SpeechToText = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -252,7 +253,7 @@ const SpeechToText = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <strong className="text-green-800">AI Response:</strong>
-                      <p className="mt-1">{llmResponse}</p>
+                      <p className="mt-1"><ReactMarkdown>{llmResponse}</ReactMarkdown></p>
                     </div>
                     {audioUrl && (
                       <Button
@@ -295,7 +296,7 @@ const SpeechToText = () => {
                       <strong>You:</strong> {item.userText}
                     </div>
                     <div>
-                      <strong>AI:</strong> {item.llmResponse}
+                      <strong>AI:</strong> <ReactMarkdown>{item.llmResponse}</ReactMarkdown> 
                     </div>
                   </div>
                 ))}
