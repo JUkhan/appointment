@@ -2,6 +2,7 @@ from langchain_core.tools import tool
 from agent.model import model
 from agent.graph_state import GraphState
 import dateparser
+from datetime import date, timedelta
 from service import book_appointment, cancel_appointment, get_doctor_list, get_user_appointments
 from agent.is_date_in_schedule import is_date_in_schedule
 
@@ -16,9 +17,24 @@ def doctor_list():
   return get_doctor_list()
 
 @tool
-def calculate_date(date_info:str):
+def calculate_date(doctor_availability:str, date_info:str):
   """This is a date calculating function that parse date information to date"""
-  return f'appointment_date: {dateparser.parse(date_info).strftime('%a, %B %d, %Y')}'
+  try:
+    return f'appointment_date: {dateparser.parse(date_info).strftime('%a, %B %d, %Y')}'
+  except:
+    
+    user=f"""
+       current date: {date.today()}
+       doctor's available days: {doctor_availability}  
+       find an available date in current year or next based on: {date_info} 
+       only answer the date of format: yyyy-mm-dd 
+      """
+    
+    response = model.invoke([
+      ('system', 'You are my AI assistant, please answer my query to the best of your ability.'),
+      ('human', user)
+    ])
+    return f'appointment_date: {dateparser.parse(response.content).strftime('%a, %B %d, %Y')}'
 
 @tool
 def cancel_doctor_appointment(appointment_id: str, user_id: str):
@@ -26,18 +42,23 @@ def cancel_doctor_appointment(appointment_id: str, user_id: str):
   return cancel_appointment(appointment_id, user_id)
 
 @tool
+def get_appointment_list(user_id: str):
+  """This is a function fetching list of appointments"""
+  return get_user_appointments(user_id)
+
+@tool
 def doctor_appointment(user_id: str, doctor_id: str, doctor_name: str, appointment_date:str, patient_name:str, patient_age:int):
   """This is a doctor appointment booking function"""
   return book_appointment(user_id=user_id, doctor_id=doctor_id, date=appointment_date, patient_name=patient_name, patient_age=patient_age)
 
-tools=[cancel_doctor_appointment,doctor_appointment, calculate_date, doctor_list, is_appointment_date_in_schedule]
+tools=[cancel_doctor_appointment,doctor_appointment, calculate_date, doctor_list, is_appointment_date_in_schedule, get_appointment_list]
 
 tools_model = model.bind_tools(tools)
 
 def model_call(state: GraphState):
-  print(state['messages'][-1])
+  print(state['messages'][0])
   response=tools_model.invoke([
-    ('system','You are my AI assistant, please answer my query to the best of your ability. use doctor_list tool get doctor detail. before calling doctor_appointment tool we need to take user confirmation showing all inputs.')    
+    ('system',f'You are my AI assistant, please answer my query to the best of your ability. {state['messages'][0].content} use doctor_list tool get doctor detail. before calling doctor_appointment tool we need to take user confirmation showing all inputs.')    
   ]+state['messages'])
   state['messages']=[response]
   return state

@@ -97,7 +97,9 @@ def get_user_appointments(user_id: str):
         return [{
             'id': appointment.id,
             'doctor_name': doctor.name,
-            'date': appointment.date
+            'appointment_date': appointment.date,
+            'patient_name':appointment.patient_name,
+            'serial_number':appointment.serial_number
         } for appointment, doctor in appointments]
     except Exception as e:
         return {'error': str(e)}
