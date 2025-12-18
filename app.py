@@ -19,6 +19,7 @@ import shutil
 from dotenv import load_dotenv
 from db import db
 from models import User, Doctor, Appointment
+from tts import gen_audio_file
 
 load_dotenv()
 from agent.app import run_chatbot
@@ -59,9 +60,6 @@ def invalid_token_callback(error):
 def unauthorized_callback(error):
     return jsonify({'error': 'Authorization token is required'}), 422
 
-
-# Initialize speech recognizer
-recognizer = sr.Recognizer()
 
 # Configure OpenAI (you'll need to set your API key)
 # openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -177,104 +175,99 @@ def chat():
 @app.route('/process-audio', methods=['POST'])
 @jwt_required()
 def process_audio():
+    temp_input_path = None
+    temp_output_path = None
+
     try:
-        # Get audio file and language from request
+        print('-------------enter process audio---------------')
         if 'audio' not in request.files:
             return jsonify({'error': 'No audio file provided'}), 400
-        
+
         audio_file = request.files['audio']
-        language = request.form.get('language', 'en')  # Default to English
-        
-        # Validate language
+        language = request.form.get('language', 'en')
+
         if language not in LANGUAGE_CONFIG:
-            language = 'en'  # Fallback to English
-        
+            language = 'en'
+
         lang_config = LANGUAGE_CONFIG[language]
         print(f"Processing audio in {lang_config['name']} language")
-        
-        # Generate unique filename
+
         unique_id = str(uuid.uuid4())
         temp_input_path = f'temp_audio/input_{unique_id}.wav'
         temp_output_path = f'temp_audio/output_{unique_id}.mp3'
-        
+
         # Convert and save uploaded audio file to WAV format
         try:
-            # First try direct save (for WebM/WAV files from browser)
             audio_file.save(temp_input_path)
-            
-            # Try to read it directly with speech recognition
+
             try:
                 with sr.AudioFile(temp_input_path) as test_source:
-                    test_audio = recognizer.record(test_source, duration=0.1)
+                    pass  # Just test if readable
                 print("Audio file is compatible, no conversion needed")
             except:
-                # If direct read fails, try pydub conversion
                 print("Attempting audio format conversion...")
-                audio_file.seek(0)  # Reset file pointer
+                audio_file.seek(0)
                 audio_segment = AudioSegment.from_file(audio_file)
-                # Ensure proper format for speech recognition
                 audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
                 audio_segment.export(temp_input_path, format='wav')
                 print("Audio converted successfully")
-                
+
         except Exception as e:
-            # Fallback: try to save the file as-is and hope it works
             try:
                 audio_file.seek(0)
                 audio_file.save(temp_input_path)
                 print(f"Audio conversion failed, trying direct processing: {str(e)}")
             except Exception as e2:
                 return jsonify({'error': f'Audio processing failed: {str(e)} | Fallback failed: {str(e2)}'}), 400
-        
-        # Convert audio to text using speech recognition
+
+        # Create a NEW recognizer per request to avoid shared state
+        local_recognizer = sr.Recognizer()
+
         with sr.AudioFile(temp_input_path) as source:
-            # Adjust for ambient noise
-            recognizer.adjust_for_ambient_noise(source)
-            # Record the audio
-            audio_data = recognizer.record(source)
-        
-        # Recognize speech using Google Speech Recognition
+            local_recognizer.adjust_for_ambient_noise(source)
+            audio_data = local_recognizer.record(source)
+
         try:
-            user_text = recognizer.recognize_google(audio_data, language=lang_config['speech_code'])
+            user_text = local_recognizer.recognize_google(audio_data, language=lang_config['speech_code'])
             print(f"Recognized text: {user_text}")
         except sr.UnknownValueError:
             return jsonify({'error': 'Could not understand audio'}), 400
         except sr.RequestError as e:
             return jsonify({'error': f'Speech recognition error: {str(e)}'}), 500
-        
-        # Get LLM response
+
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        #llm_response = get_llm_response(user_text, language)
         llm_response = run_chatbot(user_text, user_id_str)
-        
-        speech_text= llm_response
-        if(len(llm_response)>200):
-            speech_text='Read the following text carefully and response accordingly:'
-            llm_response =f'## {speech_text}\n{llm_response}'
 
-        # Convert LLM response to speech
-        async def convert_to_speech():
-            communicate = edge_tts.Communicate(text=speech_text, voice=lang_config['tts_voice'])
-            await communicate.save(temp_output_path)
-        asyncio.run(convert_to_speech())
+        speech_text = llm_response
+        if len(llm_response) > 500:
+            speech_text = 'Read the following text carefully and response accordingly:' if language=='en' else 'নিচের লেখাটি মনোযোগ সহকারে পড়ুন এবং সেই অনুযায়ী উত্তর দিন'
+            llm_response = f'## {speech_text}\n{llm_response}'
 
-        # tts = gTTS(text=speech_text, lang=lang_config['tts_code'], slow=False)
-        # tts.save(temp_output_path)
-        
-        
-        # Clean up input file
-        os.remove(temp_input_path)
-        
+        gen_audio_file(temp_output_path, speech_text)
+
+        # Clean up input file after successful processing
+        if temp_input_path and os.path.exists(temp_input_path):
+            os.remove(temp_input_path)
+            temp_input_path = None  # Mark as cleaned
+
         return jsonify({
             'user_text': user_text,
             'llm_response': llm_response,
             'audio_id': unique_id
         })
-        
+
     except Exception as e:
         print(f"Error processing audio: {str(e)}")
         return jsonify({'error': f'Processing error: {str(e)}'}), 500
+
+    finally:
+        # Cleanup input file on any failure
+        if temp_input_path and os.path.exists(temp_input_path):
+            try:
+                os.remove(temp_input_path)
+            except:
+                pass
 
 @app.route('/get-audio/<audio_id>', methods=['GET'])
 def get_audio(audio_id):
