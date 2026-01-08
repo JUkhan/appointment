@@ -1,95 +1,122 @@
-import dateparser
 from datetime import datetime
+import re
 
-def is_date_in_schedule(date_str, schedule_str):
+def parse_date_string(date_str):
     """
-    Check if a given date falls on a weekday specified in the schedule.
+    Parse date string in English, Bangla, or mixed format and return formatted date.
     
     Args:
-        date_str (str): Date in format 'Day, Month DD, YYYY' (e.g., 'Mon, December 25, 2023')
-        schedule_str (str): Schedule pattern (e.g., 'Mon-Fri 9AM-5PM' or 'Mon, Wed, Fri 8AM-4PM')
+        date_str: Date string like 'Monday, January 15th', 'সোমবার, জানুয়ারি ১৪', etc.
     
     Returns:
-        bool: True if the date's weekday is in the schedule, False otherwise
+        Formatted date string like 'Mon, December 25, 2023'
     """
     
-    # Parse the input date
-    try:
-        # Extract the weekday from the date string
-        date_weekday = date_str.split(',')[0].strip()
-        
-        # Also parse the full date to get the actual weekday for verification
-        date_part = date_str.split(',', 1)[1].strip()  # "December 25, 2023"
-        parsed_date = datetime.strptime(date_part, "%B %d, %Y")
-        actual_weekday = parsed_date.strftime("%a")  # Mon, Tue, Wed, etc.
-        
-    except (ValueError, IndexError) as e:
-        print(f"Error parsing date: {e}")
-        return False
+    # Bangla to English mappings
+    bangla_months = {
+        'জানুয়ারি': 'January',
+        'ফেব্রুয়ারি': 'February',
+        'মার্চ': 'March',
+        'এপ্রিল': 'April',
+        'মে': 'May',
+        'জুন': 'June',
+        'জুলাই': 'July',
+        'আগস্ট': 'August',
+        'সেপ্টেম্বর': 'September',
+        'অক্টোবর': 'October',
+        'নভেম্বর': 'November',
+        'ডিসেম্বর': 'December'
+    }
     
-    # Extract weekdays from schedule
-    schedule_weekdays = set()
+    bangla_days = {
+        'সোমবার': 'Monday',
+        'মঙ্গলবার': 'Tuesday',
+        'বুধবার': 'Wednesday',
+        'বৃহস্পতিবার': 'Thursday',
+        'শুক্রবার': 'Friday',
+        'শনিবার': 'Saturday',
+        'রবিবার': 'Sunday'
+    }
     
-    # Handle range format like "Mon-Fri"
-    if '-' in schedule_str and not ',' in schedule_str.split()[0]:
-        range_part = schedule_str.split()[0]  # "Mon-Fri"
-        start_day, end_day = range_part.split('-')
-        
-        # Define weekday order
-        weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        
-        try:
-            start_idx = weekdays.index(start_day)
-            end_idx = weekdays.index(end_day)
-            
-            # Handle the range (assuming it doesn't wrap around the week)
-            if start_idx <= end_idx:
-                for i in range(start_idx, end_idx + 1):
-                    schedule_weekdays.add(weekdays[i])
-            else:
-                # Handle wrap-around case (e.g., Fri-Mon)
-                for i in range(start_idx, len(weekdays)):
-                    schedule_weekdays.add(weekdays[i])
-                for i in range(0, end_idx + 1):
-                    schedule_weekdays.add(weekdays[i])
-                    
-        except ValueError:
-            print(f"Invalid weekday in range: {range_part}")
-            return False
+    # Bangla numeral to English numeral
+    bangla_digits = {
+        '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+        '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+    }
     
-    # Handle comma-separated format like "Mon, Wed, Fri"
+    # Convert Bangla numerals to English
+    def convert_bangla_to_english_number(text):
+        for bangla, english in bangla_digits.items():
+            text = text.replace(bangla, english)
+        return text
+    
+    # Normalize the input
+    normalized = date_str
+    
+    # Replace Bangla months with English
+    for bangla, english in bangla_months.items():
+        normalized = normalized.replace(bangla, english)
+    
+    # Replace Bangla days with English (though we don't really need the day name for parsing)
+    for bangla, english in bangla_days.items():
+        normalized = normalized.replace(bangla, english)
+    
+    # Convert Bangla numbers to English
+    normalized = convert_bangla_to_english_number(normalized)
+    
+    # Remove ordinal suffixes (st, nd, rd, th)
+    normalized = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', normalized)
+    
+    # Extract month, day, and year
+    months = ['January', 'February', 'March', 'April', 'May', 'June',
+              'July', 'August', 'September', 'October', 'November', 'December']
+    
+    month = None
+    day = None
+    year = None
+    
+    # Find month
+    for m in months:
+        if m in normalized:
+            month = m
+            break
+    
+    # Find day (1-31)
+    day_match = re.search(r'\b(\d{1,2})\b', normalized)
+    if day_match:
+        day = int(day_match.group(1))
+    
+    # Find year (4 digits)
+    year_match = re.search(r'\b(20\d{2}|19\d{2})\b', normalized)
+    if year_match:
+        year = int(year_match.group(1))
     else:
-        # Extract the days part (before time)
-        days_part = schedule_str.split()[0]  # Get first part before space
-        if ',' in days_part:
-            # Split by comma and clean up
-            days = [day.strip() for day in days_part.split(',')]
-            schedule_weekdays.update(days)
-        else:
-            # Single day
-            schedule_weekdays.add(days_part)
+        year = datetime.now().year
     
-    # Check if the date's weekday is in the schedule
-    # Use the actual parsed weekday for accuracy
-    return actual_weekday in schedule_weekdays
+    # Create date object and format
+    if month and day:
+        month_num = months.index(month) + 1
+        date_obj = datetime(year, month_num, day)
+        return date_obj.strftime('%a, %B %d, %Y')
+    else:
+        raise ValueError(f"Could not parse date from: {date_str}")
 
-if __name__ == '__main__':
-  print('example:::')
-  structured_dates = ["Monday, December 25, 2023", "Tuesday, December 26, 2023"]
-  for date_str in structured_dates: 
-    dt = dateparser.parse(date_str)
-    print(dt.strftime('%a, %B %d, %Y'))
-  test_date = "Mon, December 25, 2023"
+
+# Test cases
+if __name__ == "__main__":
+    test_cases = [
+        'Monday, January 15th',
+        'সোমবার, জানুয়ারি ১৪',
+        'Monday January 15th 2025',
+        'December 25th 2023',
+        'জুলাই ২৮',
+        'March 3rd'
+    ]
     
-  schedule1 = "Mon-Fri 9AM-5PM"
-  schedule2 = "Mon, Wed, Fri 8AM-4PM"
-  schedule3 = "Tue, Thu 10AM-6PM"
-  
-  print(f"Date: {test_date}")
-  print(f"Schedule 1 '{schedule1}': {is_date_in_schedule(test_date, schedule1)}")
-  print(f"Schedule 2 '{schedule2}': {is_date_in_schedule(test_date, schedule2)}")
-  print(f"Schedule 3 '{schedule3}': {is_date_in_schedule(test_date, schedule3)}")
-  
-  # Verify the actual weekday of the test date
-  parsed = datetime.strptime("December 25, 2023", "%B %d, %Y")
-  print(f"Actual weekday of December 25, 2023: {parsed.strftime('%A')} ({parsed.strftime('%a')})")
+    for test in test_cases:
+        try:
+            result = parse_date_string(test)
+            print(f"Input:  {test}")
+            print(f"Output: {result}\n")
+        except Exception as e:
+            print(f"Error parsing '{test}': {e}\n")

@@ -2,20 +2,20 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 #from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
-from gtts import gTTS
+#from gtts import gTTS
 import speech_recognition as sr
-import edge_tts
-import asyncio
+#import edge_tts
+#import asyncio
 import os
 import uuid
-import tempfile
-import io
+#import tempfile
+#import io
 from pydub import AudioSegment
 from pydub.utils import which
 from datetime import datetime, timedelta
-import wave
+#import wave
 import subprocess
-import shutil
+#import shutil
 from dotenv import load_dotenv
 from db import db
 from models import User, Doctor, Appointment
@@ -118,7 +118,7 @@ def setup_ffmpeg():
     return False
 
 # Setup ffmpeg on startup
-setup_ffmpeg()
+#setup_ffmpeg()
 
 # Language configuration
 LANGUAGE_CONFIG = {
@@ -149,18 +149,7 @@ def get_llm_response(text, language='en'):
     
     return lang_config['echo_template'].format(text=text, time=time_str)
     
-    # Uncomment below for OpenAI integration:
-    # try:
-    #     response = openai.chat.completions.create(
-    #         model="gpt-3.5-turbo",
-    #         messages=[
-    #             {"role": "system", "content": "You are a helpful assistant."},
-    #             {"role": "user", "content": text}
-    #         ]
-    #     )
-    #     return response.choices[0].message.content
-    # except Exception as e:
-    #     return f"Sorry, I couldn't process your request: {str(e)}"
+    
 
 @app.route('/api/chatbot', methods=['POST'])
 def chat():

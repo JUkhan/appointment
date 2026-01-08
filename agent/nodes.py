@@ -4,11 +4,12 @@ from agent.graph_state import GraphState
 import dateparser
 from datetime import date, timedelta
 from service import book_appointment, cancel_appointment, get_doctor_list, get_user_appointments
-from agent.is_date_in_schedule import is_date_in_schedule
+from agent.is_date_in_schedule import is_date_in_schedule, parse_date_string
 
 @tool
 def is_appointment_date_in_schedule(appointment_date: str, doctor_availability:str):
   """This is a week day checking function"""
+  appointment_date = parse_date_string(appointment_date)
   return is_date_in_schedule(dateparser.parse(appointment_date).strftime('%a, %B %d, %Y'), doctor_availability)
 
 @tool
