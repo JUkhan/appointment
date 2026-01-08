@@ -9,8 +9,7 @@ from agent.is_date_in_schedule import is_date_in_schedule, parse_date_string
 @tool
 def is_appointment_date_in_schedule(appointment_date: str, doctor_availability:str):
   """This is a week day checking function"""
-  appointment_date = parse_date_string(appointment_date)
-  return is_date_in_schedule(dateparser.parse(appointment_date).strftime('%a, %B %d, %Y'), doctor_availability)
+  return is_date_in_schedule(parse_date_string(appointment_date), doctor_availability)
 
 @tool
 def doctor_list():

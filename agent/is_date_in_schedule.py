@@ -1,13 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import re
 
 def parse_date_string(date_str):
     """
     Parse date string in English, Bangla, or mixed format and return formatted date.
+    Always returns current or future dates (if date is in past, moves to next year).
     
     Args:
-        date_str: Date string like 'Monday, January 15th', 'সোমবার, জানুয়ারি ১৪', etc.
+        date_str: Date string like 'Monday, January 15th', 'সোমবার, জানুয়ারি ১৪', 
+                  or just 'Monday', 'সোমবার' (weekday only)
     
     Returns:
         Formatted date string like 'Mon, December 25, 2023'
@@ -58,7 +60,7 @@ def parse_date_string(date_str):
     for bangla, english in bangla_months.items():
         normalized = normalized.replace(bangla, english)
     
-    # Replace Bangla days with English (though we don't really need the day name for parsing)
+    # Replace Bangla days with English
     for bangla, english in bangla_days.items():
         normalized = normalized.replace(bangla, english)
     
@@ -72,9 +74,18 @@ def parse_date_string(date_str):
     months = ['January', 'February', 'March', 'April', 'May', 'June',
               'July', 'August', 'September', 'October', 'November', 'December']
     
+    weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    
     month = None
     day = None
     year = None
+    weekday_name = None
+    
+    # Find weekday
+    for wd in weekdays:
+        if wd in normalized:
+            weekday_name = wd
+            break
     
     # Find month
     for m in months:
@@ -94,10 +105,31 @@ def parse_date_string(date_str):
     else:
         year = datetime.now().year
     
-    # Create date object and format
+    # Handle weekday-only input: find next occurrence of that weekday
+    if weekday_name and not month and not day:
+        today = datetime.now()
+        target_weekday = weekdays.index(weekday_name)  # 0=Monday, 6=Sunday
+        current_weekday = today.weekday()  # 0=Monday, 6=Sunday
+        
+        # Calculate days until target weekday
+        days_ahead = target_weekday - current_weekday
+        if days_ahead <= 0:  # Target day already happened this week or is today
+            days_ahead += 7  # Go to next week
+        
+        target_date = today + timedelta(days=days_ahead)
+        return target_date.strftime('%a, %B %d, %Y')
+    
+    # Create date object and format for full date strings
     if month and day:
         month_num = months.index(month) + 1
         date_obj = datetime(year, month_num, day)
+        
+        # Check if date is in the past
+        today = datetime.now()
+        if date_obj.date() < today.date():
+            # Move to next year
+            date_obj = datetime(year + 1, month_num, day)
+        
         return date_obj.strftime('%a, %B %d, %Y')
     else:
         raise ValueError(f"Could not parse date from: {date_str}")
