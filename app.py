@@ -448,7 +448,10 @@ def get_user_appointments():
         return jsonify([{
             'id': appointment.id,
             'doctor_name': doctor.name,
-            'date': appointment.date
+            'availability':doctor.availability,
+            'date': appointment.date,
+            'patient_name':appointment.patient_name,
+            'serial_number':appointment.serial_number
         } for appointment, doctor in appointments])
     except Exception as e:
         return jsonify({'error': str(e)}), 500

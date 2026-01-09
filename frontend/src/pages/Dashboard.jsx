@@ -11,9 +11,9 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('appointments');
 
   const tabs = [
-    { id: 'appointments', label: 'Book Appointment', icon: Calendar },
+   // { id: 'appointments', label: 'Book Appointment', icon: Calendar },
     { id: 'my-appointments', label: 'My Appointments', icon: User },
-    { id: 'speech', label: 'Voice Assistant', icon: Mic },
+    { id: 'speech', label: 'Book Appointment - Voice Assistant', icon: Mic },
   ];
 
   const renderContent = () => {

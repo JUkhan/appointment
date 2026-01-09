@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Calendar, Clock, User, Trash2 } from 'lucide-react';
+import {calculateTimeSlot} from './utils';
 
 const MyAppointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -18,7 +19,10 @@ const MyAppointments = () => {
     try {
       setLoading(true);
       const response = await axios.get('/appointments');
-      setAppointments(response.data);
+      setAppointments(response.data.map(appointment => ({
+        ...appointment,
+        time_slot: calculateTimeSlot(appointment.availability, appointment.serial_number)
+      })));
     } catch (error) {
       setError('Failed to fetch appointments');
     } finally {
@@ -113,7 +117,7 @@ const MyAppointments = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <User className="w-4 h-4 text-blue-600" />
-                      <h3 className="font-semibold text-lg">{appointment.doctor_name}</h3>
+                      <h3 className="font-semibold text-lg">{appointment.doctor_name}<span className='text-fuchsia-700 text-sm'> ({appointment.availability})</span></h3>
                     </div>
                     
                     <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -123,8 +127,15 @@ const MyAppointments = () => {
                       </div>
                       <div className="flex items-center space-x-1">
                         <Clock className="w-4 h-4" />
-                        <span>{formatTime(appointment.date)}</span>
+                        <span>{appointment.time_slot}</span>
                       </div>
+                      <div className="flex items-center space-x-1">
+                        <span>{appointment.patient_name}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span>Serial:{appointment.serial_number}</span>
+                      </div>
+                      
                     </div>
                   </div>
                   
