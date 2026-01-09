@@ -227,7 +227,7 @@ def process_audio():
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
         llm_response = run_chatbot2(user_text, user_id_str)
-
+        print('llm: ', llm_response)
         speech_text = llm_response
         if len(llm_response) > 500:
             speech_text = 'Read the following text carefully and response accordingly:' if language=='en' else 'নিচের লেখাটি মনোযোগ সহকারে পড়ুন এবং সেই অনুযায়ী উত্তর দিন'

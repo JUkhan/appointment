@@ -8,7 +8,7 @@ import { Calendar, Mic, User } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('appointments');
+  const [activeTab, setActiveTab] = useState('my-appointments');
 
   const tabs = [
    // { id: 'appointments', label: 'Book Appointment', icon: Calendar },
