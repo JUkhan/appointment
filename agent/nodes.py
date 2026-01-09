@@ -57,9 +57,9 @@ tools_model = model.bind_tools(tools)
 
 def model_call(state: GraphState):
   print(state['messages'][0])
-  response=tools_model.invoke([
-    ('system',f'You are my AI assistant, please answer my query to the best of your ability. {state['messages'][0].content} use doctor_list tool get doctor detail. before calling doctor_appointment tool we need to take user confirmation showing all inputs.')    
-  ]+state['messages'])
+  context=f'You are my AI assistant, please answer my query to the best of your ability. {state['messages'][0].content} - ask patient if he does not mention doctor name: "doctor\'s name or reasoning to see a doctor". use doctor_list tool to get doctor details. before calling doctor_appointment tool we need to take user confirmation showing all inputs.'
+  print(context)
+  response=tools_model.invoke([('system',context)]+state['messages'])
   state['messages']=[response]
   return state
 

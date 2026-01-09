@@ -22,7 +22,7 @@ from models import User, Doctor, Appointment
 from tts import gen_audio_file
 
 load_dotenv()
-from agent.app import run_chatbot
+from agent.app import run_chatbot2
 
 
 app = Flask(__name__)
@@ -226,15 +226,16 @@ def process_audio():
 
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        llm_response = run_chatbot(user_text, user_id_str)
+        llm_response = run_chatbot2(user_text, user_id_str)
 
         speech_text = llm_response
         if len(llm_response) > 500:
             speech_text = 'Read the following text carefully and response accordingly:' if language=='en' else 'নিচের লেখাটি মনোযোগ সহকারে পড়ুন এবং সেই অনুযায়ী উত্তর দিন'
             llm_response = f'## {speech_text}\n{llm_response}'
-
-        gen_audio_file(temp_output_path, speech_text)
-
+        try:
+            gen_audio_file(temp_output_path, speech_text)
+        except Exception as ex:
+            print(ex)
         # Clean up input file after successful processing
         if temp_input_path and os.path.exists(temp_input_path):
             os.remove(temp_input_path)

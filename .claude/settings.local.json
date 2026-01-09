@@ -4,7 +4,9 @@
       "Bash(dir:*)",
       "Bash(test -d:*)",
       "Bash(mkdir:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "WebSearch",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []

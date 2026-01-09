@@ -1,12 +1,26 @@
 
 from agent.compile_graph import app
 
+def extract_message_content(message):
+    """Extract plain text from message content, handling both string and list formats."""
+    content = message.content
+    if isinstance(content, list):
+        # Extract text from all text blocks (new format with thought signatures)
+        text_parts = []
+        for block in content:
+            if isinstance(block, dict) and block.get('type') == 'text':
+                text_parts.append(block.get('text', ''))
+            elif isinstance(block, str):
+                text_parts.append(block)
+        return ' '.join(text_parts)
+    return content
+
 output=''
 def print_stream(stream):
     global output
     for s in stream:
         message = s['messages'][-1]
-        output=message.content
+        output = extract_message_content(message)
         if isinstance(message, tuple):
             print(message)
         else:
@@ -53,8 +67,12 @@ def run_chatbot2(user_input, thread_id):
     user_message = ('human', user_input)
     initial_state["messages"].append(user_message)
     response = app.invoke(initial_state, config=config)
-    print("len:", len(response["messages"]), 'last content:',response["messages"][-1].content)
-    return response["messages"][-1].content
+
+    last_message = response["messages"][-1]
+    content = extract_message_content(last_message)
+
+    print("len:", len(response["messages"]), 'last content:', content)
+    return content
 
 if __name__=='__main__':
     res=run_chatbot('add 3+7.')

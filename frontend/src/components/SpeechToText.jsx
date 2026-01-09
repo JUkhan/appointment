@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 
 const SpeechToText = () => {
   const [isRecording, setIsRecording] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedLanguage, setSelectedLanguage] = useState('bn');
   const [isProcessing, setIsProcessing] = useState(false);
   const [userText, setUserText] = useState('');
   const [llmResponse, setLlmResponse] = useState('');
