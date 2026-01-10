@@ -409,11 +409,11 @@ def book_appointment():
         if not doctor:
             return jsonify({'error': 'Doctor not found'}), 404
         
-        # Check if appointment already exists for this date and doctor
+        # Check if appointment already exists for this date and doctor (excluding soft-deleted)
         existing_appointment = Appointment.query.filter_by(
-            doctor_id=doctor_id, date=date
+            doctor_id=doctor_id, date=date, is_deleted=False
         ).first()
-        
+
         if existing_appointment:
             return jsonify({'error': 'This time slot is already booked'}), 400
         
@@ -443,8 +443,11 @@ def get_user_appointments():
         user_id = int(user_id_str)  # Convert string back to int for database
         appointments = db.session.query(Appointment, Doctor).join(
             Doctor, Appointment.doctor_id == Doctor.id
-        ).filter(Appointment.user_id == user_id).all()
-        
+        ).filter(
+            Appointment.user_id == user_id,
+            Appointment.is_deleted == False
+        ).all()
+
         return jsonify([{
             'id': appointment.id,
             'doctor_name': doctor.name,
@@ -463,15 +466,16 @@ def cancel_appointment(appointment_id):
         user_id_str = get_jwt_identity()
         user_id = int(user_id_str)  # Convert string back to int for database
         appointment = Appointment.query.filter_by(
-            id=appointment_id, user_id=user_id
+            id=appointment_id, user_id=user_id, is_deleted=False
         ).first()
-        
+
         if not appointment:
             return jsonify({'error': 'Appointment not found'}), 404
-        
-        db.session.delete(appointment)
+
+        # Soft delete: set is_deleted flag to True instead of hard delete
+        appointment.is_deleted = True
         db.session.commit()
-        
+
         return jsonify({'message': 'Appointment cancelled successfully'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

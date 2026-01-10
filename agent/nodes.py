@@ -8,7 +8,7 @@ from agent.is_date_in_schedule import is_date_in_schedule, parse_date_string
 
 @tool
 def is_appointment_date_in_schedule(appointment_date: str, doctor_availability:str):
-  """This is a week day checking function"""
+  """This is a week day checking function that verifies user date information match with doctor's availability"""
   return is_date_in_schedule(parse_date_string(appointment_date), doctor_availability)
 
 @tool
@@ -49,9 +49,9 @@ def get_appointment_list(user_id: str):
 @tool
 def doctor_appointment(user_id: str, doctor_id: str, doctor_name: str, appointment_date:str, patient_name:str, patient_age:int):
   """This is a doctor appointment booking function"""
-  return book_appointment(user_id=user_id, doctor_id=doctor_id, date=appointment_date, patient_name=patient_name, patient_age=patient_age)
+  return book_appointment(user_id=user_id, doctor_id=doctor_id, date=parse_date_string(appointment_date), patient_name=patient_name, patient_age=patient_age)
 
-tools=[cancel_doctor_appointment,doctor_appointment, calculate_date, doctor_list, is_appointment_date_in_schedule, get_appointment_list]
+tools=[cancel_doctor_appointment,doctor_appointment, doctor_list, is_appointment_date_in_schedule, get_appointment_list]
 
 tools_model = model.bind_tools(tools)
 

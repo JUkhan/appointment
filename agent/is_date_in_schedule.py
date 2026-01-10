@@ -2,6 +2,14 @@ from datetime import datetime, timedelta
 
 import re
 
+def validate_date(date_string, format_string="%Y-%m-%d"):
+    try:
+        
+        return (True, datetime.strptime(date_string, format_string))
+    except ValueError as e:
+        print(f"Invalid date: {e}")
+        return (False, None)
+    
 def parse_date_string(date_str):
     """
     Parse date string in English, Bangla, or mixed format and return formatted date.
@@ -14,6 +22,9 @@ def parse_date_string(date_str):
     Returns:
         Formatted date string like 'Mon, December 25, 2023'
     """
+    isvalid, date = validate_date(date_str)
+    if isvalid:
+        return date.strftime('%a, %B %d, %Y')
     
     # Bangla to English mappings
     bangla_months = {

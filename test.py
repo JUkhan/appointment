@@ -133,7 +133,13 @@ def parse_date_string(date_str):
     else:
         raise ValueError(f"Could not parse date from: {date_str}")
 
-
+def validate_date(date_string, format_string='%a, %B %d, %Y'):
+    try:
+        
+        return (True, datetime.strptime(date_string, "%a, %B %d, %Y"))
+    except ValueError as e:
+        print(f"Invalid date: {e}")
+        return (False, None)
 # Example usage:
 if __name__ == "__main__":
     # Test with weekday only
@@ -154,5 +160,7 @@ if __name__ == "__main__":
     print("Full date with year:")
     print(parse_date_string("Monday, January 15th, 2025"))
     print(parse_date_string("সোমবার, জানুয়ারি ১৫"))
+
+    print(validate_date("Thu, January 15, 2026"))
 
 
