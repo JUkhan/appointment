@@ -5,6 +5,7 @@ import dateparser
 from datetime import date, timedelta
 from service import book_appointment, cancel_appointment, get_doctor_list, get_user_appointments
 from agent.is_date_in_schedule import is_date_in_schedule, parse_date_string
+from agent.utils import extract_message_content
 
 @tool
 def is_appointment_date_in_schedule(appointment_date: str, doctor_availability:str):
@@ -18,9 +19,9 @@ def doctor_list():
 
 @tool
 def calculate_date(doctor_availability:str, date_info:str):
-  """This is a date calculating function that parse date information to date"""
+  """This is a date calculation function that parse complex date information to valid date string"""
   try:
-    return f'appointment_date: {dateparser.parse(date_info).strftime('%a, %B %d, %Y')}'
+    return f'appointment_date: {parse_date_string(date_info)}'
   except:
     
     user=f"""
@@ -34,7 +35,9 @@ def calculate_date(doctor_availability:str, date_info:str):
       ('system', 'You are my AI assistant, please answer my query to the best of your ability.'),
       ('human', user)
     ])
-    return f'appointment_date: {dateparser.parse(response.content).strftime('%a, %B %d, %Y')}'
+    date_str=extract_message_content(response)
+    print("available_date from calculate_date tool:", date_str)
+    return f'appointment_date: {dateparser.parse(date_str).strftime('%a, %B %d, %Y')}'
 
 @tool
 def cancel_doctor_appointment(appointment_id: str, user_id: str):
@@ -51,7 +54,7 @@ def doctor_appointment(user_id: str, doctor_id: str, doctor_name: str, appointme
   """This is a doctor appointment booking function"""
   return book_appointment(user_id=user_id, doctor_id=doctor_id, date=parse_date_string(appointment_date), patient_name=patient_name, patient_age=patient_age)
 
-tools=[cancel_doctor_appointment,doctor_appointment, doctor_list, is_appointment_date_in_schedule, get_appointment_list]
+tools=[cancel_doctor_appointment,calculate_date, doctor_appointment, doctor_list, is_appointment_date_in_schedule, get_appointment_list]
 
 tools_model = model.bind_tools(tools)
 

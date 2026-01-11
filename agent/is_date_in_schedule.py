@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta
-
+import dateparser
 import re
 
-def validate_date(date_string, format_string="%Y-%m-%d"):
+def validate_date(date_string):
     try:
-        
-        return (True, datetime.strptime(date_string, format_string))
+        return (True, dateparser.parse(date_string))
     except ValueError as e:
         print(f"Invalid date: {e}")
         return (False, None)

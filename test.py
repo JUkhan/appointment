@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+import dateparser
 
 def parse_date_string(date_str):
     """
@@ -136,7 +137,7 @@ def parse_date_string(date_str):
 def validate_date(date_string, format_string='%a, %B %d, %Y'):
     try:
         
-        return (True, datetime.strptime(date_string, "%a, %B %d, %Y"))
+        return (True, dateparser.parse(date_string))
     except ValueError as e:
         print(f"Invalid date: {e}")
         return (False, None)
