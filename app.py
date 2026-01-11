@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 #from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, create_refresh_token, get_jwt_identity, get_jwt
 #from gtts import gTTS
 import speech_recognition as sr
 #import edge_tts
@@ -31,8 +31,12 @@ CORS(app)  # Enable CORS for React frontend
 # Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///appointment_system.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = 'your-secret-key-change-in-production'  # Change this in production
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+
+# JWT Configuration from .env
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 15)))
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 7)))
+
 # Comprehensive JWT configuration to disable CSRF
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
@@ -322,23 +326,38 @@ def login():
             return jsonify({'error': 'Username and password are required'}), 400
         
         user = User.query.filter_by(username=username).first()
-        
+
         if user and user.check_password(password):
-            # Create token with string identity (required for proper JWT validation)
-            access_token = create_access_token(identity=str(user.id), fresh=False)
-            print(f"Created token for user {user.id}: {access_token[:50]}...")
-            
-            # Debug token structure
-            import jwt as pyjwt
-            try:
-                decoded = pyjwt.decode(access_token, options={"verify_signature": False})
-                print(f"Token payload: {decoded}")
-            except Exception as decode_error:
-                print(f"Failed to decode token: {decode_error}")
-            
-            return jsonify({'access_token': access_token, 'user_id': user.id}), 200
+            # Create both access and refresh tokens
+            access_token = create_access_token(identity=str(user.id), fresh=True)
+            refresh_token = create_refresh_token(identity=str(user.id))
+
+            print(f"Created tokens for user {user.id}")
+
+            return jsonify({
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'user_id': user.id
+            }), 200
         
         return jsonify({'error': 'Invalid credentials'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """
+    Refresh access token using refresh token
+    Returns a new access token
+    """
+    try:
+        current_user = get_jwt_identity()
+        new_access_token = create_access_token(identity=current_user, fresh=False)
+
+        return jsonify({
+            'access_token': new_access_token
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

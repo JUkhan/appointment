@@ -6,7 +6,8 @@
       "Bash(mkdir:*)",
       "Bash(npm install:*)",
       "WebSearch",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

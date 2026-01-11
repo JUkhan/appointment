@@ -37,7 +37,7 @@ def calculate_date(doctor_availability:str, date_info:str):
     ])
     date_str=extract_message_content(response)
     print("available_date from calculate_date tool:", date_str)
-    return f'appointment_date: {dateparser.parse(date_str).strftime('%a, %B %d, %Y')}'
+    return f"appointment_date: {dateparser.parse(date_str).strftime('%a, %B %d, %Y')}"
 
 @tool
 def cancel_doctor_appointment(appointment_id: str, user_id: str):
@@ -60,7 +60,7 @@ tools_model = model.bind_tools(tools)
 
 def model_call(state: GraphState):
   print(state['messages'][0])
-  context=f'You are my AI assistant, please answer my query to the best of your ability. {state['messages'][0].content} - ask patient if he does not mention doctor name: "doctor\'s name or reasoning to see a doctor". use doctor_list tool to get doctor details. before calling doctor_appointment tool we need to take user confirmation showing all inputs.'
+  context=f"You are my AI assistant, please answer my query to the best of your ability. {state['messages'][0].content} - ask patient if he does not mention doctor name: \"doctor's name or reasoning to see a doctor\". use doctor_list tool to get doctor details. before calling doctor_appointment tool we need to take user confirmation showing all inputs."
   response=tools_model.invoke([('system',context)]+state['messages'])
   state['messages']=[response]
   return state

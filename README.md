@@ -186,7 +186,56 @@ This project is for educational and development purposes. Please ensure you comp
 
 ---
 
-## Quick Start Commands
+## Docker Deployment (Recommended for Production)
+
+### Prerequisites
+- Docker Engine 20.10+
+- Docker Compose 2.0+
+
+### Quick Start with Docker
+
+```bash
+# 1. Ensure .env file exists with required variables
+# GOOGLE_API_KEY, JWT_SECRET_KEY, JWT_ACCESS_TOKEN_EXPIRES, JWT_REFRESH_TOKEN_EXPIRES
+
+# 2. Start the application (Windows)
+docker.bat start
+
+# Or on Linux/Mac
+./docker.sh start
+
+# 3. Access the application
+# Frontend: http://localhost
+# Backend: http://localhost:5000
+```
+
+### Docker Commands
+
+**Windows:**
+```batch
+docker.bat start       # Start in production mode
+docker.bat dev         # Start in development mode with hot reloading
+docker.bat stop        # Stop all containers
+docker.bat logs        # View logs
+docker.bat backup      # Backup database
+docker.bat status      # Show container status
+```
+
+**Linux/Mac:**
+```bash
+./docker.sh start      # Start in production mode
+./docker.sh dev        # Start in development mode with hot reloading
+./docker.sh stop       # Stop all containers
+./docker.sh logs       # View logs
+./docker.sh backup     # Backup database
+./docker.sh status     # Show container status
+```
+
+For detailed Docker instructions, see [DOCKER_README.md](DOCKER_README.md)
+
+---
+
+## Quick Start Commands (Manual Installation)
 
 ### Option 1: Automated Setup (Recommended)
 ```powershell
