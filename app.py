@@ -163,14 +163,14 @@ def chat():
     if not user_input:
         return jsonify({"error": "user_input is required"}), 400
     
-    response = run_chatbot(user_input, thread_id)
+    response = run_chatbot2(user_input, thread_id)
     return jsonify({"response": response})
 
 @app.route('/process-audio', methods=['POST'])
 @jwt_required()
 def process_audio():
     temp_input_path = None
-    temp_output_path = None
+    #temp_output_path = None
 
     try:
         print('-------------enter process audio---------------')
@@ -231,7 +231,7 @@ def process_audio():
 
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        llm_response = user_text #run_chatbot2(user_text, user_id_str)
+        llm_response = run_chatbot2(user_text, user_id_str)
         print('llm: ', llm_response)
         speech_text = llm_response
         if len(llm_response) > 500:

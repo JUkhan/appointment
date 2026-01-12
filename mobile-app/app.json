@@ -9,9 +9,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#0ea5e9"
     },
+    "platforms": ["ios", "android"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourcompany.doctorappointment",
+      "buildNumber": "1.0.0",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app needs access to your microphone for voice assistant functionality.",
         "NSSpeechRecognitionUsageDescription": "This app needs access to speech recognition for voice assistant functionality."
