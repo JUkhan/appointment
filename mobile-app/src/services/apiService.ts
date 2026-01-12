@@ -41,9 +41,10 @@ export interface CreateAppointmentData {
 }
 
 export interface ProcessAudioResponse {
-  transcription: string;
-  response: string;
+  user_text: string;
+  llm_response: string;
   audio_id: string;
+  error?: string;
 }
 
 class ApiService {

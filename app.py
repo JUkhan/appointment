@@ -230,25 +230,23 @@ def process_audio():
 
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        llm_response = run_chatbot2(user_text, user_id_str)
+        llm_response = user_text #run_chatbot2(user_text, user_id_str)
         print('llm: ', llm_response)
         speech_text = llm_response
         if len(llm_response) > 500:
             speech_text = 'Read the following text carefully and response accordingly:' if language=='en' else 'নিচের লেখাটি মনোযোগ সহকারে পড়ুন এবং সেই অনুযায়ী উত্তর দিন'
             llm_response = f'## {speech_text}\n{llm_response}'
-        try:
-            gen_audio_file(temp_output_path, speech_text)
-        except Exception as ex:
-            print(ex)
+        # try:
+        #     gen_audio_file(temp_output_path, speech_text)
+        # except Exception as ex:
+        #     print(ex)
         # Clean up input file after successful processing
-        if temp_input_path and os.path.exists(temp_input_path):
-            os.remove(temp_input_path)
-            temp_input_path = None  # Mark as cleaned
-
+        
         return jsonify({
             'user_text': user_text,
             'llm_response': llm_response,
-            'audio_id': unique_id
+            'audio_id': unique_id,
+            'error':None
         })
 
     except Exception as e:

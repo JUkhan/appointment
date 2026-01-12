@@ -99,12 +99,17 @@ export const VoiceAssistantScreen = () => {
 
     try {
       const response = await apiService.processAudio(audioUri, language);
+      console.log('API response:', response);
 
+      if (response.error) {
+        Alert.alert('Error', response.error);
+        return;
+      }
       // Add user message (transcription)
       const userMessage: Message = {
         id: Date.now().toString(),
         type: 'user',
-        text: response.transcription,
+        text: response.user_text,
         timestamp: new Date(),
       };
 
@@ -112,7 +117,7 @@ export const VoiceAssistantScreen = () => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        text: response.response,
+        text: response.llm_response,
         timestamp: new Date(),
       };
 
@@ -120,7 +125,7 @@ export const VoiceAssistantScreen = () => {
 
       // Play audio response if available
       if (response.audio_id) {
-        playAudioResponse(response.audio_id);
+        playAudioResponse(response.audio_id, response.llm_response);
       }
     } catch (error: any) {
       Alert.alert(
@@ -133,20 +138,13 @@ export const VoiceAssistantScreen = () => {
     }
   };
 
-  const playAudioResponse = async (audioId: string) => {
+  const playAudioResponse = async (audioId: string, responseText: string) => {
     try {
       // For text-to-speech, use expo-speech
-      const assistantMessage = messages[messages.length - 1];
-      if (assistantMessage && assistantMessage.type === 'assistant') {
-        Speech.speak(assistantMessage.text, {
-          language: language === 'en' ? 'en-US' : 'bn-IN',
-        });
-      }
+      Speech.speak(responseText, {
+        language: language === 'en' ? 'en-US' : 'bn-IN',
+      });
 
-      // Clean up audio on server
-      setTimeout(() => {
-        apiService.cleanupAudio(audioId).catch(console.error);
-      }, 5000);
     } catch (error) {
       console.error('Failed to play audio:', error);
     }
@@ -269,16 +267,16 @@ export const VoiceAssistantScreen = () => {
             {processing
               ? '⏳'
               : isRecording
-              ? '⏹'
-              : '🎤'}
+                ? '⏹'
+                : '🎤'}
           </Text>
         </TouchableOpacity>
         <Text style={styles.footerText}>
           {processing
             ? 'Processing...'
             : isRecording
-            ? 'Recording... (Tap to stop)'
-            : 'Tap to start recording'}
+              ? 'Recording... (Tap to stop)'
+              : 'Tap to start recording'}
         </Text>
       </View>
     </View>
