@@ -124,9 +124,9 @@ export const VoiceAssistantScreen = () => {
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
       // Play audio response if available
-      if (response.audio_id) {
-        playAudioResponse(response.audio_id, response.llm_response);
-      }
+
+      playAudioResponse(response.llm_response);
+
     } catch (error: any) {
       Alert.alert(
         'Error',
@@ -138,7 +138,7 @@ export const VoiceAssistantScreen = () => {
     }
   };
 
-  const playAudioResponse = async (audioId: string, responseText: string) => {
+  const playAudioResponse = async (responseText: string) => {
     try {
       // For text-to-speech, use expo-speech
       Speech.speak(responseText, {

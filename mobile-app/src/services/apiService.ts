@@ -43,7 +43,7 @@ export interface CreateAppointmentData {
 export interface ProcessAudioResponse {
   user_text: string;
   llm_response: string;
-  audio_id: string;
+  //audio_id: string;
   error?: string;
 }
 
