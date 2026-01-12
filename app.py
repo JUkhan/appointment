@@ -391,6 +391,7 @@ def get_doctors():
         return jsonify([{
             'id': doctor.id,
             'name': doctor.name,
+            'specialization': doctor.skills,
             'availability': doctor.availability
         } for doctor in doctors])
     except Exception as e:

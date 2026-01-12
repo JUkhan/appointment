@@ -26,6 +26,7 @@ export const BookAppointmentScreen = () => {
   const [booking, setBooking] = useState(false);
   const [patientName, setPatientName] = useState('');
   const [patientAge, setPatientAge] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [errors, setErrors] = useState({
     patientName: '',
     patientAge: '',
@@ -47,6 +48,16 @@ export const BookAppointmentScreen = () => {
       setLoadingDoctors(false);
     }
   };
+
+  const filteredDoctors = doctors.filter((doctor) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    const nameMatch = doctor.name.toLowerCase().includes(query);
+    const specializationMatch = doctor.specialization?.toLowerCase().includes(query);
+
+    return nameMatch || specializationMatch;
+  }).slice(0, 3); // Limit to first 5 results
 
   const handleDateChange = (event: any, date?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
@@ -162,17 +173,31 @@ export const BookAppointmentScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <Text style={styles.sectionTitle}>Select a Doctor</Text>
+
+        <Input
+          placeholder="Search by doctor name or specialization..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          containerStyle={styles.searchInput}
+        />
+
         {doctors.length === 0 ? (
           <Text style={styles.emptyText}>No doctors available at the moment.</Text>
+        ) : filteredDoctors.length === 0 ? (
+          <Text style={styles.emptyText}>
+            No doctors found matching "{searchQuery}"
+          </Text>
         ) : (
-          doctors.map((doctor) => (
-            <DoctorCard
-              key={doctor.id}
-              doctor={doctor}
-              isSelected={selectedDoctor?.id === doctor.id}
-              onSelect={() => setSelectedDoctor(doctor)}
-            />
-          ))
+          <View style={styles.doctorListContainer}>
+            {filteredDoctors.map((doctor) => (
+              <DoctorCard
+                key={doctor.id}
+                doctor={doctor}
+                isSelected={selectedDoctor?.id === doctor.id}
+                onSelect={() => setSelectedDoctor(doctor)}
+              />
+            ))}
+          </View>
         )}
 
         <Text style={styles.sectionTitle}>Select Date</Text>
@@ -261,6 +286,12 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.xl,
+  },
+  searchInput: {
+    marginBottom: Spacing.md,
+  },
+  doctorListContainer: {
+    marginBottom: Spacing.md,
   },
   dateButton: {
     marginBottom: Spacing.md,
