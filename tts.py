@@ -34,6 +34,7 @@ def gen_audio_file(filename: str, text: str):
     data = response.candidates[0].content.parts[0].inline_data.data
     
     wave_file(filename, data) # Saves the file to current directory
+    print('--------------audio file saved---------------')
 
 if __name__ == '__main__':
    bengali_text = """

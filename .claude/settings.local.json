@@ -7,7 +7,14 @@
       "Bash(npm install:*)",
       "WebSearch",
       "Bash(pip install:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(npx expo start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx expo install:*)",
+      "Bash(npx expo start --clear)",
+      "Bash(ipconfig:*)"
     ],
     "deny": [],
     "ask": []

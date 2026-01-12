@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Doctor Appointment",
+    "slug": "doctor-appointment-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0ea5e9"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.doctorappointment",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone for voice assistant functionality.",
+        "NSSpeechRecognitionUsageDescription": "This app needs access to speech recognition for voice assistant functionality."
+      }
+    },
+    "android": {
+      "package": "com.yourcompany.doctorappointment",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "usesCleartextTraffic": true
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow Doctor Appointment to access your microphone for voice assistant."
+        }
+      ]
+    ]
+  }
+}
