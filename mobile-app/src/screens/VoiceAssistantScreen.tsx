@@ -123,10 +123,8 @@ export const VoiceAssistantScreen = () => {
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
-      // Play audio response if available
-
+      // Play audio response
       playAudioResponse(response.llm_response);
-
     } catch (error: any) {
       Alert.alert(
         'Error',

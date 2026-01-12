@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 from db import db
 from models import User, Doctor, Appointment
 from tts import gen_audio_file
+from service import book_appointment
 
 load_dotenv()
 from agent.app import run_chatbot2
@@ -269,7 +270,7 @@ def process_text():
         user_text = data.get('user-text')
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        llm_response = user_text #run_chatbot2(user_text, user_id_str)
+        llm_response = run_chatbot2(user_text, user_id_str)
         print('llm: ', llm_response)
         return jsonify({
             'user_text': user_text,
@@ -422,11 +423,11 @@ def add_doctor():
 
 @app.route('/appointments', methods=['POST'])
 @jwt_required()
-def book_appointment():
+def add_appointment():
     try:
         user_id_str = get_jwt_identity()
-        user_id = int(user_id_str)  # Convert string back to int for database
-        print(f"Book appointment request from user {user_id}")
+        #user_id = int(user_id_str)  # Convert string back to int for database
+        print(f"Book appointment request from user {user_id_str}")
         
         # Handle both JSON and form data
         if request.is_json:
@@ -438,38 +439,29 @@ def book_appointment():
         
         doctor_id = data.get('doctor_id')
         date = data.get('date')
+        patient_name = data.get('patient_name')
+        patient_age = data.get('patient_age')
         
+        # all are required field
+
         if not doctor_id or not date:
             print("Missing doctor_id or date")
             return jsonify({'error': 'Doctor ID and date are required'}), 400
-        
-        # Check if doctor exists
-        doctor = Doctor.query.get(doctor_id)
-        if not doctor:
-            return jsonify({'error': 'Doctor not found'}), 404
-        
-        # Check if appointment already exists for this date and doctor (excluding soft-deleted)
-        existing_appointment = Appointment.query.filter_by(
-            doctor_id=doctor_id, date=date, is_deleted=False
-        ).first()
 
-        if existing_appointment:
-            return jsonify({'error': 'This time slot is already booked'}), 400
-        
-        appointment = Appointment(
-            user_id=user_id,
+        if not patient_name or not patient_age:
+            print("Missing patient_name or patient_age")
+            return jsonify({'error': 'Patient name and age are required'}), 400
+        res = book_appointment(
+            user_id=user_id_str,
+            date=date,
             doctor_id=doctor_id,
-            date=date
+            patient_name=patient_name,
+            patient_age=int(patient_age)
         )
-        
-        db.session.add(appointment)
-        db.session.commit()
-        
         return jsonify({
-            'id': appointment.id,
-            'doctor_name': doctor.name,
-            'date': appointment.date,
-            'message': 'Appointment booked successfully'
+            "message":res.get("message",""),
+            "error":res.get("error", None),
+            "appointment":res
         }), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -1,6 +1,6 @@
 from db import db
 from models import Doctor, Appointment, User
-from datetime import datetime
+import dateparser
 
 def get_doctors():
     result=['id, name, skills, availability']
@@ -43,23 +43,23 @@ def book_appointment(user_id: str, doctor_id: str, patient_name: str, patient_ag
         try:
             if isinstance(date, str):
                 # Try parsing common datetime formats
-                date_obj = datetime.strptime(date, "%a, %B %d, %Y")
+                date_obj = dateparser.parse(date)
                 print('date object', date_obj)
             else:
                 date_obj = date
         except ValueError:
             return {'error': 'Invalid date format. Please use ISO format (YYYY-MM-DD HH:MM:SS)'}
-
+        
         # Check if doctor exists
         doctor = Doctor.query.get(doctor_id)
         if not doctor:
             return {'error': 'Doctor not found'}
-
+        
         # Check if user exists (optional)
         user = User.query.get(user_id)
         if not user:
             return {'error': 'User not found'}
-
+        
         # Check if appointment already exists for this date and doctor (excluding soft-deleted)
         existing_appointment = Appointment.query.filter_by(
            user_id=user_id, doctor_id=doctor_id, date=date_obj, patient_name=patient_name, is_deleted=False
@@ -67,12 +67,12 @@ def book_appointment(user_id: str, doctor_id: str, patient_name: str, patient_ag
 
         if existing_appointment:
             return {'error': 'Already booked by you'}
-
+        
         # Get serial number more safely (excluding soft-deleted appointments)
         serial_count = Appointment.query.filter_by(
             doctor_id=doctor_id, date=date_obj, is_deleted=False
         ).count()
-
+        
         appointment = Appointment(
             date=date_obj,
             patient_name=patient_name.strip(),

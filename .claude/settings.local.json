@@ -14,7 +14,8 @@
       "Bash(taskkill:*)",
       "Bash(npx expo install:*)",
       "Bash(npx expo start --clear)",
-      "Bash(ipconfig:*)"
+      "Bash(ipconfig:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

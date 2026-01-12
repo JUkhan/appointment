@@ -38,6 +38,8 @@ export interface Appointment {
 export interface CreateAppointmentData {
   doctor_id: number;
   date: string;
+  patient_name: string;
+  patient_age: number;
 }
 
 export interface ProcessAudioResponse {
@@ -168,7 +170,7 @@ class ApiService {
 
   async createAppointment(
     data: CreateAppointmentData
-  ): Promise<{ message: string; appointment: Appointment }> {
+  ): Promise<{ message: string; error?: string; appointment: Appointment }> {
     const response = await this.axiosInstance.post<{
       message: string;
       appointment: Appointment;
@@ -207,6 +209,16 @@ class ApiService {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+      }
+    );
+    return response.data;
+  }
+
+  async processText(userText: string): Promise<ProcessAudioResponse> {
+    const response = await this.axiosInstance.post<ProcessAudioResponse>(
+      API_ENDPOINTS.PROCESS_TEXT,
+      {
+        'user-text': userText,
       }
     );
     return response.data;

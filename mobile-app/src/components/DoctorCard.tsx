@@ -20,7 +20,7 @@ export const DoctorCard: React.FC<DoctorCardProps> = ({
       <Card style={[styles.card, isSelected && styles.selectedCard]}>
         <View style={styles.content}>
           <View style={styles.info}>
-            <Text style={styles.doctorName}>Dr. {doctor.name}</Text>
+            <Text style={styles.doctorName}>{doctor.name}</Text>
             <Text style={styles.specialization}>{doctor.specialization}</Text>
           </View>
           <View style={styles.availability}>

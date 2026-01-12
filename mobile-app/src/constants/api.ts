@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
 
   // Voice Assistant
   PROCESS_AUDIO: '/process-audio',
+  PROCESS_TEXT: '/process-text',
   GET_AUDIO: '/get-audio',
   CLEANUP_AUDIO: '/cleanup',
 };

@@ -11,6 +11,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiService, Doctor } from '../services/apiService';
 import { DoctorCard } from '../components/DoctorCard';
 import { Button } from '../components/Button';
+import { Input } from '../components/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Colors, Spacing, FontSizes } from '../constants/colors';
 import { formatDateForAPI, formatDate } from '../utils/timeSlot';
@@ -23,6 +24,12 @@ export const BookAppointmentScreen = () => {
   const [loading, setLoading] = useState(false);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
   const [booking, setBooking] = useState(false);
+  const [patientName, setPatientName] = useState('');
+  const [patientAge, setPatientAge] = useState('');
+  const [errors, setErrors] = useState({
+    patientName: '',
+    patientAge: '',
+  });
 
   useEffect(() => {
     fetchDoctors();
@@ -48,9 +55,43 @@ export const BookAppointmentScreen = () => {
     }
   };
 
+  const validateForm = (): boolean => {
+    const newErrors = {
+      patientName: '',
+      patientAge: '',
+    };
+
+    let isValid = true;
+
+    if (!patientName.trim()) {
+      newErrors.patientName = 'Patient name is required';
+      isValid = false;
+    }
+
+    if (!patientAge.trim()) {
+      newErrors.patientAge = 'Patient age is required';
+      isValid = false;
+    } else {
+      const age = parseInt(patientAge);
+      if (isNaN(age) || age <= 0 || age > 150) {
+        newErrors.patientAge = 'Please enter a valid age (1-150)';
+        isValid = false;
+      }
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleBookAppointment = async () => {
     if (!selectedDoctor) {
       Alert.alert('Select Doctor', 'Please select a doctor to continue.');
+      return;
+    }
+
+    // Validate form fields
+    if (!validateForm()) {
+      Alert.alert('Validation Error', 'Please fill in all required fields correctly.');
       return;
     }
 
@@ -71,11 +112,19 @@ export const BookAppointmentScreen = () => {
       const response = await apiService.createAppointment({
         doctor_id: selectedDoctor.id,
         date: formatDateForAPI(selectedDate),
+        patient_name: patientName.trim(),
+        patient_age: parseInt(patientAge),
       });
-
+      if (response.error) {
+        Alert.alert(
+          'Booking Failed',
+          response.error || 'Failed to book appointment. Please try again.'
+        );
+        return;
+      }
       Alert.alert(
         'Success',
-        `Appointment booked successfully!\n\nDoctor: Dr. ${selectedDoctor.name}\nDate: ${formatDate(
+        `Appointment booked successfully!\n\nPatient: ${patientName}\nDoctor: ${selectedDoctor.name}\nDate: ${formatDate(
           selectedDate
         )}\nSerial Number: ${response.appointment.serial_number}`,
         [
@@ -84,6 +133,9 @@ export const BookAppointmentScreen = () => {
             onPress: () => {
               setSelectedDoctor(null);
               setSelectedDate(new Date());
+              setPatientName('');
+              setPatientAge('');
+              setErrors({ patientName: '', patientAge: '' });
             },
           },
         ]
@@ -140,6 +192,36 @@ export const BookAppointmentScreen = () => {
             minimumDate={new Date()}
           />
         )}
+
+        <Text style={styles.sectionTitle}>Patient Information</Text>
+        <Input
+          label="Patient Name *"
+          placeholder="Enter patient name"
+          value={patientName}
+          onChangeText={(text) => {
+            setPatientName(text);
+            if (errors.patientName) {
+              setErrors({ ...errors, patientName: '' });
+            }
+          }}
+          error={errors.patientName}
+          autoCapitalize="words"
+        />
+
+        <Input
+          label="Patient Age *"
+          placeholder="Enter patient age"
+          value={patientAge}
+          onChangeText={(text) => {
+            setPatientAge(text);
+            if (errors.patientAge) {
+              setErrors({ ...errors, patientAge: '' });
+            }
+          }}
+          error={errors.patientAge}
+          keyboardType="numeric"
+          maxLength={3}
+        />
       </ScrollView>
 
       <View style={styles.footer}>
@@ -147,7 +229,7 @@ export const BookAppointmentScreen = () => {
           title="Book Appointment"
           onPress={handleBookAppointment}
           loading={booking}
-          disabled={!selectedDoctor || booking}
+          disabled={!selectedDoctor || !patientName.trim() || !patientAge.trim() || booking}
           style={styles.bookButton}
         />
       </View>
