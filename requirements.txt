@@ -13,3 +13,4 @@ dateparser==1.2.2
 #gTTS==2.3.2
 google-genai>=1.56.0
 openai>=2.13.0
+gunicorn==21.2.0

@@ -43,6 +43,9 @@ frontend/.env.development.local
 frontend/.env.test.local
 frontend/.env.production.local
 
+# Mobile App
+mobile-app/
+
 # Database (keep schema, not data)
 instance/*.db
 *.db-journal
