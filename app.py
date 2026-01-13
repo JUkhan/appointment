@@ -170,7 +170,91 @@ def chat():
 @jwt_required()
 def process_audio():
     temp_input_path = None
-    #temp_output_path = None
+    try:
+        print('-------------enter process audio---------------')
+        if 'audio' not in request.files:
+            return jsonify({'error': 'No audio file provided'}), 400
+
+        audio_file = request.files['audio']
+        language = request.form.get('language', 'en')
+
+        if language not in LANGUAGE_CONFIG:
+            language = 'en'
+
+        lang_config = LANGUAGE_CONFIG[language]
+        print(f"Processing audio in {lang_config['name']} language")
+
+        unique_id = str(uuid.uuid4())
+        temp_input_path = f'temp_audio/input_{unique_id}.wav'
+        
+        # Convert and save uploaded audio file to WAV format
+        try:
+            audio_file.save(temp_input_path)
+
+            try:
+                with sr.AudioFile(temp_input_path) as test_source:
+                    pass  # Just test if readable
+                print("Audio file is compatible, no conversion needed")
+            except:
+                print("Attempting audio format conversion...")
+                audio_file.seek(0)
+                audio_segment = AudioSegment.from_file(audio_file)
+                audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
+                audio_segment.export(temp_input_path, format='wav')
+                print("Audio converted successfully")
+
+        except Exception as e:
+            try:
+                audio_file.seek(0)
+                audio_file.save(temp_input_path)
+                print(f"Audio conversion failed, trying direct processing: {str(e)}")
+            except Exception as e2:
+                return jsonify({'error': f'Audio processing failed: {str(e)} | Fallback failed: {str(e2)}'}), 400
+
+        # Create a NEW recognizer per request to avoid shared state
+        local_recognizer = sr.Recognizer()
+
+        with sr.AudioFile(temp_input_path) as source:
+            local_recognizer.adjust_for_ambient_noise(source)
+            audio_data = local_recognizer.record(source)
+
+        try:
+            user_text = local_recognizer.recognize_google(audio_data, language=lang_config['speech_code'])
+            print(f"Recognized text: {user_text}")
+        except sr.UnknownValueError:
+            return jsonify({'error': 'Could not understand audio'}), 400
+        except sr.RequestError as e:
+            return jsonify({'error': f'Speech recognition error: {str(e)}'}), 500
+
+        user_id_str = get_jwt_identity()
+        print('user id:', user_id_str)
+        llm_response = user_text#run_chatbot2(user_text, user_id_str)
+        print('llm: ', llm_response)
+        speech_text = llm_response
+        
+        return jsonify({
+            'user_text': user_text,
+            'llm_response': llm_response,
+            'error':None
+        })
+
+    except Exception as e:
+        print(f"Error processing audio: {str(e)}")
+        return jsonify({'error': f'Processing error: {str(e)}'}), 500
+
+    finally:
+        # Cleanup input file on any failure
+        if temp_input_path and os.path.exists(temp_input_path):
+            try:
+                os.remove(temp_input_path)
+            except:
+                pass
+
+@app.route('/web/process-audio', methods=['POST'])
+@jwt_required()
+def process_audio_web():
+    temp_input_path = None
+    temp_output_path = None
 
     try:
         print('-------------enter process audio---------------')
@@ -188,7 +272,7 @@ def process_audio():
 
         unique_id = str(uuid.uuid4())
         temp_input_path = f'temp_audio/input_{unique_id}.wav'
-        temp_output_path = f'temp_audio/output_{unique_id}.mp3'
+        temp_output_path = f'temp_audio/output_{unique_id}.wav'
 
         # Convert and save uploaded audio file to WAV format
         try:
@@ -231,22 +315,22 @@ def process_audio():
 
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        llm_response = run_chatbot2(user_text, user_id_str)
+        llm_response = user_text# run_chatbot2(user_text, user_id_str)
         print('llm: ', llm_response)
         speech_text = llm_response
         if len(llm_response) > 500:
             speech_text = 'Read the following text carefully and response accordingly:' if language=='en' else 'নিচের লেখাটি মনোযোগ সহকারে পড়ুন এবং সেই অনুযায়ী উত্তর দিন'
             llm_response = f'## {speech_text}\n{llm_response}'
-        # try:
-        #     gen_audio_file(temp_output_path, speech_text)
-        # except Exception as ex:
-        #     print(ex)
-        # Clean up input file after successful processing
+        try:
+            gen_audio_file(temp_output_path, speech_text)
+        except Exception as ex:
+            print(ex)
+        
         
         return jsonify({
             'user_text': user_text,
             'llm_response': llm_response,
-            #'audio_id': unique_id,
+            'audio_id': unique_id,
             'error':None
         })
 
@@ -261,7 +345,6 @@ def process_audio():
                 os.remove(temp_input_path)
             except:
                 pass
-
 @app.route('/process-text', methods=['POST'])
 @jwt_required()
 def process_text():
@@ -287,16 +370,9 @@ def process_text():
 @app.route('/get-audio/<audio_id>', methods=['GET'])
 def get_audio(audio_id):
     try:
-        audio_path = f'temp_audio/output_{audio_id}.mp3'
+        audio_path = f'temp_audio/output_{audio_id}.wav'
         if os.path.exists(audio_path):
-            def remove_file():
-                try:
-                    os.remove(audio_path)
-                except:
-                    pass
-            
-            # Schedule file removal after sending
-            return send_file(audio_path, as_attachment=True, download_name='response.mp3', mimetype='audio/mpeg')
+            return send_file(audio_path, as_attachment=True, download_name='response.wav', mimetype='audio/wav')
         else:
             return jsonify({'error': 'Audio file not found'}), 404
     except Exception as e:
@@ -305,7 +381,7 @@ def get_audio(audio_id):
 @app.route('/cleanup/<audio_id>', methods=['DELETE'])
 def cleanup_audio(audio_id):
     try:
-        audio_path = f'temp_audio/output_{audio_id}.mp3'
+        audio_path = f'temp_audio/output_{audio_id}.wav'
         if os.path.exists(audio_path):
             os.remove(audio_path)
         return jsonify({'message': 'File cleaned up successfully'})

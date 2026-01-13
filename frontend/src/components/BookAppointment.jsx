@@ -4,16 +4,23 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { CalendarDays, Clock, User } from 'lucide-react';
+import { CalendarDays, Clock, User, Search } from 'lucide-react';
 
 const BookAppointment = () => {
   const [doctors, setDoctors] = useState([]);
-  const [selectedDoctor, setSelectedDoctor] = useState('');
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [appointmentDate, setAppointmentDate] = useState('');
-  const [appointmentTime, setAppointmentTime] = useState('');
+  //const [appointmentTime, setAppointmentTime] = useState('');
+  const [patientName, setPatientName] = useState('');
+  const [patientAge, setPatientAge] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({
+    patientName: '',
+    patientAge: '',
+  });
 
   useEffect(() => {
     fetchDoctors();
@@ -28,37 +35,97 @@ const BookAppointment = () => {
     }
   };
 
+  const filteredDoctors = doctors.filter((doctor) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    const nameMatch = doctor.name.toLowerCase().includes(query);
+    const specializationMatch = doctor.specialization?.toLowerCase().includes(query);
+
+    return nameMatch || specializationMatch;
+  }).slice(0, 5); // Limit to 5 results
+
+  const validateForm = () => {
+    const newErrors = {
+      patientName: '',
+      patientAge: '',
+    };
+
+    let isValid = true;
+
+    if (!patientName.trim()) {
+      newErrors.patientName = 'Patient name is required';
+      isValid = false;
+    }
+
+    if (!patientAge.trim()) {
+      newErrors.patientAge = 'Patient age is required';
+      isValid = false;
+    } else {
+      const age = parseInt(patientAge);
+      if (isNaN(age) || age <= 0 || age > 150) {
+        newErrors.patientAge = 'Please enter a valid age (1-150)';
+        isValid = false;
+      }
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!selectedDoctor) {
+      setError('Please select a doctor');
+      return;
+    }
+
+    // Validate form fields
+    if (!validateForm()) {
+      setError('Please fill in all required fields correctly.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setMessage('');
 
-    const dateTime = `${appointmentDate} ${appointmentTime}`;
+    //const dateTime = `${appointmentDate} ${appointmentTime}`;
 
     try {
       console.log('Booking appointment with data:', {
-        doctor_id: parseInt(selectedDoctor),
-        date: dateTime
+        doctor_id: selectedDoctor.id,
+        date: appointmentDate,
+        patient_name: patientName.trim(),
+        patient_age: parseInt(patientAge),
       });
-      
-      console.log('Current axios headers:', axios.defaults.headers.common);
-      
+
       const response = await axios.post('/appointments', {
-        doctor_id: parseInt(selectedDoctor),
-        date: dateTime
+        doctor_id: selectedDoctor.id,
+        date: appointmentDate,
+        patient_name: patientName.trim(),
+        patient_age: parseInt(patientAge),
       });
 
       console.log('Appointment booking response:', response.data);
-      setMessage(`Appointment booked successfully with ${response.data.doctor_name} on ${response.data.date}`);
-      setSelectedDoctor('');
-      setAppointmentDate('');
-      setAppointmentTime('');
+
+      if (response.error) {
+        setError(response.data.error);
+      } else {
+        setMessage(`Appointment booked successfully!\n\nPatient: ${patientName}\nDoctor: ${selectedDoctor.name}\nDate: ${appointmentDate}\nSerial Number: ${response.data.appointment?.serial_number || 'N/A'}`);
+        setSelectedDoctor(null);
+        setAppointmentDate('');
+        //setAppointmentTime('');
+        setPatientName('');
+        setPatientAge('');
+        setErrors({ patientName: '', patientAge: '' });
+      }
     } catch (error) {
       console.error('Appointment booking error:', error);
       console.error('Error response:', error.response?.data);
       console.error('Error status:', error.response?.status);
-      
+
       if (error.response?.status === 422) {
         setError('Authentication required. Please login again.');
       } else {
@@ -95,28 +162,67 @@ const BookAppointment = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Search Doctors */}
           <div>
-            <Label htmlFor="doctor">Select Doctor</Label>
-            <select
-              id="doctor"
-              value={selectedDoctor}
-              onChange={(e) => setSelectedDoctor(e.target.value)}
-              required
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <option value="">Choose a doctor...</option>
-              {doctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>
-                  {doctor.name} - {doctor.availability}
-                </option>
-              ))}
-            </select>
+            <Label htmlFor="search" className="flex items-center space-x-2">
+              <Search className="w-4 h-4" />
+              <span>Search Doctors</span>
+            </Label>
+            <Input
+              id="search"
+              type="text"
+              placeholder="Search by doctor name or specialization..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="mt-1"
+            />
           </div>
 
+          {/* Doctor Selection */}
+          <div>
+            <Label>Select Doctor *</Label>
+            <div className="mt-2 grid gap-3 max-h-96 overflow-y-auto">
+              {filteredDoctors.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  {searchQuery ? `No doctors found matching "${searchQuery}"` : 'No doctors available'}
+                </p>
+              ) : (
+                filteredDoctors.map((doctor) => (
+                  <div
+                    key={doctor.id}
+                    onClick={() => setSelectedDoctor(doctor)}
+                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                      selectedDoctor?.id === doctor.id
+                        ? 'border-blue-500 bg-blue-50 shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{doctor.name}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{doctor.specialization}</p>
+                      </div>
+                      {selectedDoctor?.id === doctor.id && (
+                        <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                          ✓
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-green-600 flex items-center mt-2">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {doctor.availability}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Date and Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date">Appointment Date</Label>
+              <Label htmlFor="date">Appointment Date *</Label>
               <Input
                 id="date"
                 type="date"
@@ -128,8 +234,8 @@ const BookAppointment = () => {
               />
             </div>
 
-            <div>
-              <Label htmlFor="time">Appointment Time</Label>
+            {/* <div>
+              <Label htmlFor="time">Appointment Time *</Label>
               <Input
                 id="time"
                 type="time"
@@ -138,36 +244,70 @@ const BookAppointment = () => {
                 required
                 className="mt-1"
               />
+            </div> */}
+          </div>
+
+          {/* Patient Information */}
+          <div className="border-t pt-4">
+            <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+              <User className="w-5 h-5" />
+              <span>Patient Information</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="patientName">Patient Name *</Label>
+                <Input
+                  id="patientName"
+                  type="text"
+                  placeholder="Enter patient name"
+                  value={patientName}
+                  onChange={(e) => {
+                    setPatientName(e.target.value);
+                    if (errors.patientName) {
+                      setErrors({ ...errors, patientName: '' });
+                    }
+                  }}
+                  className={`mt-1 ${errors.patientName ? 'border-red-500' : ''}`}
+                  required
+                />
+                {errors.patientName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.patientName}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="patientAge">Patient Age *</Label>
+                <Input
+                  id="patientAge"
+                  type="number"
+                  placeholder="Enter patient age"
+                  value={patientAge}
+                  onChange={(e) => {
+                    setPatientAge(e.target.value);
+                    if (errors.patientAge) {
+                      setErrors({ ...errors, patientAge: '' });
+                    }
+                  }}
+                  min="1"
+                  max="150"
+                  className={`mt-1 ${errors.patientAge ? 'border-red-500' : ''}`}
+                  required
+                />
+                {errors.patientAge && (
+                  <p className="text-red-500 text-sm mt-1">{errors.patientAge}</p>
+                )}
+              </div>
             </div>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={loading}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || !selectedDoctor || !patientName.trim() || !patientAge.trim()}
           >
             {loading ? 'Booking...' : 'Book Appointment'}
           </Button>
         </form>
-
-        {/* Available Doctors */}
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-            <User className="w-5 h-5" />
-            <span>Available Doctors</span>
-          </h3>
-          <div className="grid gap-4">
-            {doctors.map((doctor) => (
-              <div key={doctor.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                <h4 className="font-medium">{doctor.name}</h4>
-                <p className="text-sm text-gray-600 flex items-center space-x-1">
-                  <Clock className="w-4 h-4" />
-                  <span>{doctor.availability}</span>
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

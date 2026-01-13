@@ -103,7 +103,7 @@ const SpeechToText = () => {
       formData.append('audio', audioBlob, 'recording.wav');
       formData.append('language', selectedLanguage);
 
-      const response = await axios.post(`${API_BASE_URL}/process-audio`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/web/process-audio`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
