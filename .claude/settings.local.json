@@ -15,7 +15,9 @@
       "Bash(npx expo install:*)",
       "Bash(npx expo start --clear)",
       "Bash(ipconfig:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(curl:*)",
+      "Bash(docker exec:*)"
     ],
     "deny": [],
     "ask": []
