@@ -23,7 +23,7 @@ from tts import gen_audio_file
 from service import book_appointment
 
 load_dotenv()
-from agent.app import run_chatbot2
+from agent.app import run_chatbot
 
 
 app = Flask(__name__)
@@ -72,59 +72,6 @@ def unauthorized_callback(error):
 # Create directories for temporary files
 os.makedirs('temp_audio', exist_ok=True)
 
-# Configure ffmpeg path for pydub
-# def setup_ffmpeg():
-#     """Find and configure ffmpeg for pydub"""
-#     # Local ffmpeg installation (downloaded directly)
-#     local_ffmpeg_dir = os.path.join(os.getcwd(), "ffmpeg-7.1.1-essentials_build", "bin")
-#     local_ffmpeg_path = os.path.join(local_ffmpeg_dir, "ffmpeg.exe")
-#     local_ffprobe_path = os.path.join(local_ffmpeg_dir, "ffprobe.exe")
-    
-#     # Common ffmpeg installation paths on Windows
-#     possible_paths = [
-#         (local_ffmpeg_path, local_ffprobe_path),  # Try local installation first
-#         (r"C:\ffmpeg\bin\ffmpeg.exe", r"C:\ffmpeg\bin\ffprobe.exe"),
-#         (r"C:\Program Files\ffmpeg\bin\ffmpeg.exe", r"C:\Program Files\ffmpeg\bin\ffprobe.exe"),
-#         (r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe", r"C:\Program Files (x86)\ffmpeg\bin\ffprobe.exe"),
-#     ]
-    
-#     for ffmpeg_path, ffprobe_path in possible_paths:
-#         if os.path.exists(ffmpeg_path) and os.path.exists(ffprobe_path):
-#             # Set environment variables for pydub
-#             os.environ['PATH'] = os.path.dirname(ffmpeg_path) + os.pathsep + os.environ.get('PATH', '')
-            
-#             # Configure pydub directly
-#             AudioSegment.converter = ffmpeg_path
-#             AudioSegment.ffmpeg = ffmpeg_path
-#             AudioSegment.ffprobe = ffprobe_path
-            
-#             print(f"✅ Found ffmpeg at: {ffmpeg_path}")
-#             print(f"✅ Found ffprobe at: {ffprobe_path}")
-            
-#             # Test the configuration
-#             try:
-#                 result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, text=True, timeout=5)
-#                 if result.returncode == 0:
-#                     print("✅ FFmpeg is working correctly")
-#                     return True
-#             except Exception as e:
-#                 print(f"⚠️ FFmpeg test failed: {e}")
-    
-#     # Try system PATH as fallback
-#     try:
-#         result = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, timeout=5)
-#         if result.returncode == 0:
-#             print("✅ Using ffmpeg from system PATH")
-#             return True
-#     except Exception:
-#         pass
-    
-#     print("❌ Warning: ffmpeg not found. Audio conversion may fail.")
-#     return False
-
-# Setup ffmpeg on startup
-#setup_ffmpeg()
-
 # Language configuration
 LANGUAGE_CONFIG = {
     'en': {
@@ -153,19 +100,7 @@ def get_llm_response(text, language='en'):
     time_str = datetime.now().strftime('%H:%M:%S')
     
     return lang_config['echo_template'].format(text=text, time=time_str)
-    
-    
-
-@app.route('/api/chatbot', methods=['POST'])
-def chat():
-    user_input = request.json.get('user_input')
-    thread_id = request.json.get('thread_id')
-    if not user_input:
-        return jsonify({"error": "user_input is required"}), 400
-    
-    response = run_chatbot2(user_input, thread_id)
-    return jsonify({"response": response})
-
+ 
 @app.route('/process-audio', methods=['POST'])
 @jwt_required()
 def process_audio():
@@ -228,7 +163,7 @@ def process_audio():
 
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        llm_response = run_chatbot2(user_text, user_id_str)
+        llm_response = run_chatbot(user_text, user_id_str)
         print('llm: ', llm_response)
         speech_text = llm_response
         
@@ -315,7 +250,7 @@ def process_audio_web():
 
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        llm_response = run_chatbot2(user_text, user_id_str)
+        llm_response = run_chatbot(user_text, user_id_str)
         print('llm: ', llm_response)
         speech_text = llm_response
         if len(llm_response) > 500:
@@ -353,7 +288,7 @@ def process_text():
         user_text = data.get('user-text')
         user_id_str = get_jwt_identity()
         print('user id:', user_id_str)
-        llm_response = run_chatbot2(user_text, user_id_str)
+        llm_response = run_chatbot(user_text, user_id_str)
         print('llm: ', llm_response)
         return jsonify({
             'user_text': user_text,
