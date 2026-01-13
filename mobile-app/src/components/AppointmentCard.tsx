@@ -32,11 +32,15 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.doctorName}>Dr. {appointment.doctor_name}</Text>
+        <Text style={styles.doctorName}>{appointment.doctor_name}</Text>
         <Text style={styles.serialNumber}>#{appointment.serial_number}</Text>
       </View>
 
       <View style={styles.details}>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Patient:</Text>
+          <Text style={styles.detailValue}>{appointment.patient_name}</Text>
+        </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Date:</Text>
           <Text style={styles.detailValue}>{formatDate(appointment.date)}</Text>

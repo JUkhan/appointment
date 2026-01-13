@@ -33,6 +33,7 @@ export interface Appointment {
   date: string;
   serial_number: number;
   availability: string;
+  patient_name: string;
 }
 
 export interface CreateAppointmentData {
