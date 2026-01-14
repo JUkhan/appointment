@@ -1,73 +1,23 @@
-from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
-#from flask_sqlalchemy import SQLAlchemy
+from flask import request, jsonify, send_file
+
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, create_refresh_token, get_jwt_identity, get_jwt
-#from gtts import gTTS
+
 import speech_recognition as sr
-#import edge_tts
-#import asyncio
+
 import os
 import uuid
-#import tempfile
-#import io
+
 from pydub import AudioSegment
-#from pydub.utils import which
+
 from datetime import datetime, timedelta
-#import wave
-import subprocess
-#import shutil
-from dotenv import load_dotenv
 from db import db
 from models import User, Doctor, Appointment
 from tts import gen_audio_file
 from service import book_appointment
 
-load_dotenv()
+from flask_app import app
+
 from agent.app import run_chatbot
-
-
-app = Flask(__name__)
-CORS(app)  # Enable CORS for React frontend
-
-# Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///appointment_system.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# JWT Configuration from .env
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 15)))
-app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 7)))
-
-# Comprehensive JWT configuration to disable CSRF
-app.config['JWT_TOKEN_LOCATION'] = ['headers']
-app.config['JWT_HEADER_NAME'] = 'Authorization'
-app.config['JWT_HEADER_TYPE'] = 'Bearer'
-app.config['JWT_CSRF_PROTECT'] = False
-app.config['JWT_CSRF_IN_COOKIES'] = False
-app.config['JWT_CSRF_CHECK_FORM'] = False
-app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-
-# Initialize extensions
-#db = SQLAlchemy(app)
-db.init_app(app)
-jwt = JWTManager(app)
-
-# JWT Error handlers
-@jwt.expired_token_loader
-def expired_token_callback(jwt_header, jwt_payload):
-    return jsonify({'error': 'Token has expired'}), 401
-
-@jwt.invalid_token_loader
-def invalid_token_callback(error):
-    return jsonify({'error': 'Invalid token'}), 422
-
-@jwt.unauthorized_loader
-def unauthorized_callback(error):
-    return jsonify({'error': 'Authorization token is required'}), 422
-
-
-# Configure OpenAI (you'll need to set your API key)
-# openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # Create directories for temporary files
 os.makedirs('temp_audio', exist_ok=True)
@@ -90,23 +40,12 @@ LANGUAGE_CONFIG = {
     }
 }
 
-def get_llm_response(text, language='en'):
-    """
-    Get response from LLM (placeholder for now)
-    Replace this with your preferred LLM integration
-    """
-    # Simple echo response for testing
-    lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG['en'])
-    time_str = datetime.now().strftime('%H:%M:%S')
-    
-    return lang_config['echo_template'].format(text=text, time=time_str)
- 
 @app.route('/process-audio', methods=['POST'])
 @jwt_required()
 def process_audio():
     temp_input_path = None
     try:
-        print('-------------enter process audio---------------')
+        
         if 'audio' not in request.files:
             return jsonify({'error': 'No audio file provided'}), 400
 
@@ -155,17 +94,14 @@ def process_audio():
 
         try:
             user_text = local_recognizer.recognize_google(audio_data, language=lang_config['speech_code'])
-            print(f"Recognized text: {user_text}")
+            print(f"User text: {user_text}")
         except sr.UnknownValueError:
             return jsonify({'error': 'Could not understand audio'}), 400
         except sr.RequestError as e:
             return jsonify({'error': f'Speech recognition error: {str(e)}'}), 500
 
         user_id_str = get_jwt_identity()
-        print('user id:', user_id_str)
         llm_response = run_chatbot(user_text, user_id_str)
-        print('llm: ', llm_response)
-        speech_text = llm_response
         
         return jsonify({
             'user_text': user_text,
@@ -192,7 +128,6 @@ def process_audio_web():
     temp_output_path = None
 
     try:
-        print('-------------enter process audio---------------')
         if 'audio' not in request.files:
             return jsonify({'error': 'No audio file provided'}), 400
 
@@ -242,16 +177,14 @@ def process_audio_web():
 
         try:
             user_text = local_recognizer.recognize_google(audio_data, language=lang_config['speech_code'])
-            print(f"Recognized text: {user_text}")
+            print(f"User text: {user_text}")
         except sr.UnknownValueError:
             return jsonify({'error': 'Could not understand audio'}), 400
         except sr.RequestError as e:
             return jsonify({'error': f'Speech recognition error: {str(e)}'}), 500
 
         user_id_str = get_jwt_identity()
-        print('user id:', user_id_str)
         llm_response = run_chatbot(user_text, user_id_str)
-        print('llm: ', llm_response)
         speech_text = llm_response
         if len(llm_response) > 500:
             speech_text = 'Read the following text carefully and response accordingly:' if language=='en' else 'নিচের লেখাটি মনোযোগ সহকারে পড়ুন এবং সেই অনুযায়ী উত্তর দিন'
@@ -280,6 +213,7 @@ def process_audio_web():
                 os.remove(temp_input_path)
             except:
                 pass
+            
 @app.route('/process-text', methods=['POST'])
 @jwt_required()
 def process_text():
@@ -323,77 +257,7 @@ def cleanup_audio(audio_id):
     except Exception as e:
         return jsonify({'error': f'Cleanup error: {str(e)}'}), 500
 
-# Authentication Routes
 
-@app.route('/register', methods=['POST'])
-def register():
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        
-        if not username or not password:
-            return jsonify({'error': 'Username and password are required'}), 400
-        
-        if User.query.filter_by(username=username).first():
-            return jsonify({'error': 'Username already exists'}), 400
-        
-        user = User(username=username)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        
-        return jsonify({'message': 'User registered successfully'}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/login', methods=['POST'])
-def login():
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        
-        if not username or not password:
-            return jsonify({'error': 'Username and password are required'}), 400
-        
-        user = User.query.filter_by(username=username).first()
-
-        if user and user.check_password(password):
-            # Create both access and refresh tokens
-            access_token = create_access_token(identity=str(user.id), fresh=True)
-            refresh_token = create_refresh_token(identity=str(user.id))
-
-            print(f"Created tokens for user {user.id}")
-
-            return jsonify({
-                'access_token': access_token,
-                'refresh_token': refresh_token,
-                'user_id': user.id
-            }), 200
-        
-        return jsonify({'error': 'Invalid credentials'}), 401
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
-def refresh():
-    """
-    Refresh access token using refresh token
-    Returns a new access token
-    """
-    try:
-        current_user = get_jwt_identity()
-        new_access_token = create_access_token(identity=current_user, fresh=False)
-
-        return jsonify({
-            'access_token': new_access_token
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Doctor Routes
 
 @app.route('/doctors', methods=['GET'])
 def get_doctors():
@@ -523,46 +387,8 @@ def cancel_appointment(appointment_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/test-jwt', methods=['GET'])
-@jwt_required()
-def test_jwt():
-    try:
-        user_id = get_jwt_identity()
-        return jsonify({
-            'status': 'success',
-            'message': 'JWT token is valid',
-            'user_id': user_id
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy', 'message': 'Speech-to-text and appointment booking service is running'})
 
-# Initialize database and add sample data
-def init_db():
-    """Initialize database and add sample doctors"""
-    with app.app_context():
-        db.create_all()
-        
-        # Add sample doctors if they don't exist
-        if Doctor.query.count() == 0:
-            sample_doctors = [
-                Doctor(name="Prof. Dr. Sharmin Rahman", skills ='M B B S (D A C), F C P S (OBS & Gynae)', availability="Mon-Fri 9AM-5PM"),
-                Doctor(name="Dr. Rokeya Khatun", skills ='MBBS, MCPS (Gynae & Obs), DGO', availability="Tue-Thu 10AM-6PM"),
-                Doctor(name="DR. MIR JAKIB HOSSAIN", skills ='MBBS, FCPS (MEDICINE), MD (GASTRO).', availability="Mon, Wed, Fri 8AM-4PM"),
-                Doctor(name="DR. RASHIDUL HASAN SHAFIN", skills ='MBBS, BCS (HEALTH), FCPS (PEDIATRICS), FCPS PART-2 (NEWBORN)', availability="Mon-Sat 9AM-3PM")
-            ]
-            
-            for doctor in sample_doctors:
-                db.session.add(doctor)
-            
-            db.session.commit()
-            print("✅ Sample doctors added to database")
-        
-        print("✅ Database initialized successfully")
 
-if __name__ == '__main__':
-    init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)

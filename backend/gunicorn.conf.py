@@ -2,6 +2,9 @@
 
 import multiprocessing
 import os
+import threading
+from agent.app import cleanup_old_threads
+from init_db import init_db
 
 # Server Socket
 bind = "0.0.0.0:5000"
@@ -47,6 +50,9 @@ def when_ready(server):
     """Called just after the server is started."""
     print(f"✅ Server is ready. Listening on {bind}")
     print(f"👷 Running with {workers} workers")
+    init_db()
+    cleanup_thread = threading.Thread(target=cleanup_old_threads, daemon=True)
+    cleanup_thread.start()
 
 def worker_int(worker):
     """Called just after a worker exited on SIGINT or SIGQUIT."""
