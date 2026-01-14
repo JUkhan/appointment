@@ -3,6 +3,9 @@ from datetime import  timedelta
 from flask_app import app
 from db import db
 from init_db import init_db
+import threading
+from agent.app import cleanup_old_threads
+from init_db import init_db
 
 # Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///appointment_system.db'
@@ -27,6 +30,9 @@ db.init_app(app)
 from routes.auth_routes import *
 from routes.basic_routes import *
 
+init_db()
+cleanup_thread = threading.Thread(target=cleanup_old_threads, daemon=True)
+cleanup_thread.start()
+
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -11,6 +11,7 @@ INACTIVITY_TIMEOUT = timedelta(minutes=30)
 
 def cleanup_old_threads():
     """Run periodically to clean up old thread states"""
+    print("---------------cleanup_old_threads process is running------------------")
     while True:
         time.sleep(3600)  # Run every hour
         
