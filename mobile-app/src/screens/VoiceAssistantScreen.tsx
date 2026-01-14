@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
+import Markdown from 'react-native-markdown-display';
 import { apiService } from '../services/apiService';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
+import { stripMarkdown } from '../utils/stripMarkdown';
 
 interface Message {
   id: string;
@@ -139,6 +141,7 @@ export const VoiceAssistantScreen = () => {
   const playAudioResponse = async (responseText: string) => {
     try {
       // For text-to-speech, use expo-speech
+      responseText = stripMarkdown(responseText);
       Speech.speak(responseText, {
         language: language === 'en' ? 'en-US' : 'bn-IN',
       });
@@ -225,16 +228,52 @@ export const VoiceAssistantScreen = () => {
                   : styles.assistantMessage,
               ]}
             >
-              <Text
-                style={[
-                  styles.messageText,
-                  message.type === 'user'
-                    ? styles.userMessageText
-                    : styles.assistantMessageText,
-                ]}
-              >
-                {message.text}
-              </Text>
+              {message.type === 'user' ? (
+                <Text
+                  style={[
+                    styles.messageText,
+                    styles.userMessageText,
+                  ]}
+                >
+                  {message.text}
+                </Text>
+              ) : (
+                <Markdown
+                  style={{
+                    body: styles.assistantMessageText,
+                    paragraph: {
+                      marginTop: 0,
+                      marginBottom: 8,
+                    },
+                    bullet_list: {
+                      marginBottom: 8,
+                    },
+                    ordered_list: {
+                      marginBottom: 8,
+                    },
+                    code_inline: {
+                      backgroundColor: Colors.background,
+                      paddingHorizontal: 4,
+                      paddingVertical: 2,
+                      borderRadius: 4,
+                    },
+                    code_block: {
+                      backgroundColor: Colors.background,
+                      padding: 8,
+                      borderRadius: 8,
+                      marginBottom: 8,
+                    },
+                    fence: {
+                      backgroundColor: Colors.background,
+                      padding: 8,
+                      borderRadius: 8,
+                      marginBottom: 8,
+                    },
+                  }}
+                >
+                  {message.text}
+                </Markdown>
+              )}
               <Text
                 style={[
                   styles.messageTime,
