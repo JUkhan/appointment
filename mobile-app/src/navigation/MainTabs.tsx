@@ -15,9 +15,9 @@ export const MainTabs = () => {
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarStyle: {
-          paddingBottom: 8,
+          paddingBottom: 35,
           paddingTop: 8,
-          height: 60,
+          height: 95,
         },
         headerShown: true,
         headerStyle: {
