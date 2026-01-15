@@ -21,7 +21,7 @@ export const MainTabs = () => {
         },
         headerShown: true,
         headerStyle: {
-          backgroundColor: Colors.primary,
+          backgroundColor: Colors.primaryLight,
         },
         headerTintColor: Colors.white,
         headerTitleStyle: {

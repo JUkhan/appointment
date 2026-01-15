@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.md,
     backgroundColor: Colors.primary,
-    paddingTop: 50, // Adjust for status bar
+    paddingTop: 30, // Adjust for status bar
   },
   headerTitle: {
     fontSize: FontSizes.lg,
