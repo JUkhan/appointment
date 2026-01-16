@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Speech Recognition - English & Bengali</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 600px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 28px;
+      }
+
+      .language-selector {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        justify-content: center;
+      }
+
+      .lang-btn {
+        padding: 12px 30px;
+        border: 2px solid #667eea;
+        background: white;
+        color: #667eea;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .lang-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+      }
+
+      .lang-btn.active {
+        background: #667eea;
+        color: white;
+      }
+
+      .controls {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-bottom: 30px;
+      }
+
+      .btn {
+        padding: 15px 30px;
+        border: none;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .start-btn {
+        background: #48bb78;
+        color: white;
+      }
+
+      .start-btn:hover {
+        background: #38a169;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(72, 187, 120, 0.3);
+      }
+
+      .start-btn:disabled {
+        background: #a0aec0;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .stop-btn {
+        background: #f56565;
+        color: white;
+      }
+
+      .stop-btn:hover {
+        background: #e53e3e;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(245, 101, 101, 0.3);
+      }
+
+      .stop-btn:disabled {
+        background: #a0aec0;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .clear-btn {
+        background: #ed8936;
+        color: white;
+      }
+
+      .clear-btn:hover {
+        background: #dd6b20;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(237, 137, 54, 0.3);
+      }
+
+      .status {
+        text-align: center;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .status.listening {
+        background: #c6f6d5;
+        color: #22543d;
+      }
+
+      .status.idle {
+        background: #e2e8f0;
+        color: #4a5568;
+      }
+
+      .status.error {
+        background: #fed7d7;
+        color: #742a2a;
+      }
+
+      .output {
+        background: #f7fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 20px;
+        min-height: 150px;
+        font-size: 18px;
+        line-height: 1.6;
+        color: #2d3748;
+      }
+
+      .interim {
+        color: #718096;
+        font-style: italic;
+      }
+
+      .info {
+        margin-top: 20px;
+        padding: 15px;
+        background: #bee3f8;
+        border-radius: 10px;
+        font-size: 14px;
+        color: #2c5282;
+      }
+
+      .pulse {
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .unsupported {
+        background: #fed7d7;
+        color: #742a2a;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎤 Speech Recognition</h1>
+
+      <div
+        id="unsupported"
+        class="unsupported"
+        style="display: none"
+      >
+        <p>
+          <strong>Speech Recognition is not supported in your browser.</strong>
+        </p>
+        <p>Please use Chrome, Edge, or Safari.</p>
+      </div>
+
+      <div
+        id="app"
+        style="display: none"
+      >
+        <div class="language-selector">
+          <button
+            class="lang-btn active"
+            data-lang="en-US"
+          >
+            🇺🇸 English
+          </button>
+          <button
+            class="lang-btn"
+            data-lang="bn-IN"
+          >
+            🇧🇩 বাংলা (Bengali)
+          </button>
+        </div>
+
+        <div class="controls">
+          <button
+            class="btn start-btn"
+            id="startBtn"
+          >
+            <span>▶</span> Start
+          </button>
+          <button
+            class="btn stop-btn"
+            id="stopBtn"
+            disabled
+          >
+            <span>⏹</span> Stop
+          </button>
+          <button
+            class="btn clear-btn"
+            id="clearBtn"
+          >
+            <span>🗑</span> Clear
+          </button>
+        </div>
+
+        <div
+          class="status idle"
+          id="status"
+        >
+          Ready to listen
+        </div>
+
+        <div
+          class="output"
+          id="output"
+        >
+          <p style="color: #a0aec0">Your speech will appear here...</p>
+        </div>
+
+        <div class="info">
+          <strong>How to use:</strong>
+          <ul style="margin-left: 20px; margin-top: 10px">
+            <li>Select your language (English or Bengali)</li>
+            <li>Click "Start" and allow microphone access</li>
+            <li>Speak clearly into your microphone</li>
+            <li>Click "Stop" when finished</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Check for browser support
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        document.getElementById('unsupported').style.display = 'block';
+      } else {
+        document.getElementById('app').style.display = 'block';
+
+        // Initialize Speech Recognition
+        const recognition = new SpeechRecognition();
+        let currentLanguage = 'en-US';
+        let finalTranscript = '';
+
+        // Configure recognition
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = currentLanguage;
+
+        // Get DOM elements
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+        const langBtns = document.querySelectorAll('.lang-btn');
+
+        // Language selection
+        langBtns.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (recognition.started) {
+              return; // Don't change language while listening
+            }
+
+            langBtns.forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentLanguage = btn.dataset.lang;
+            recognition.lang = currentLanguage;
+
+            const langName = currentLanguage === 'en-US' ? 'English' : 'বাংলা';
+            updateStatus(`Language changed to ${langName}`, 'idle');
+          });
+        });
+
+        // Start button
+        startBtn.addEventListener('click', () => {
+          try {
+            recognition.start();
+            recognition.started = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            updateStatus('Listening... 🎤', 'listening');
+          } catch (e) {
+            console.error('Error starting recognition:', e);
+          }
+        });
+
+        // Stop button
+        stopBtn.addEventListener('click', () => {
+          recognition.stop();
+          recognition.started = false;
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          updateStatus('Stopped', 'idle');
+        });
+
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+          finalTranscript = '';
+          output.innerHTML =
+            '<p style="color: #a0aec0;">Your speech will appear here...</p>';
+        });
+
+        // Recognition events
+        recognition.onresult = (event) => {
+          let interimTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          displayTranscript(finalTranscript, interimTranscript);
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          let errorMsg = 'Error occurred';
+
+          switch (event.error) {
+            case 'no-speech':
+              errorMsg = 'No speech detected. Please try again.';
+              break;
+            case 'audio-capture':
+              errorMsg = 'No microphone found or access denied.';
+              break;
+            case 'not-allowed':
+              errorMsg = 'Microphone access denied. Please allow access.';
+              break;
+            case 'network':
+              errorMsg = 'Network error occurred.';
+              break;
+            default:
+              errorMsg = `Error: ${event.error}`;
+          }
+
+          updateStatus(errorMsg, 'error');
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          recognition.started = false;
+        };
+
+        recognition.onend = () => {
+          recognition.started = false;
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+
+          if (status.classList.contains('listening')) {
+            updateStatus('Stopped', 'idle');
+          }
+        };
+
+        // Helper functions
+        function updateStatus(message, type) {
+          status.textContent = message;
+          status.className = `status ${type}`;
+
+          if (type === 'listening') {
+            status.classList.add('pulse');
+          } else {
+            status.classList.remove('pulse');
+          }
+        }
+
+        function displayTranscript(final, interim) {
+          if (final === '' && interim === '') {
+            output.innerHTML =
+              '<p style="color: #a0aec0;">Your speech will appear here...</p>';
+            return;
+          }
+
+          let html = '';
+          if (final) {
+            html += `<span>${final}</span>`;
+          }
+          if (interim) {
+            html += `<span class="interim">${interim}</span>`;
+          }
+          output.innerHTML = html;
+        }
+      }
+    </script>
+  </body>
+</html>

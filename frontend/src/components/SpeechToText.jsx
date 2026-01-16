@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Mic, MicOff, Volume2, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Loader2, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const SpeechToText = () => {
@@ -11,109 +11,247 @@ const SpeechToText = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [userText, setUserText] = useState('');
   const [llmResponse, setLlmResponse] = useState('');
-  const [audioUrl, setAudioUrl] = useState('');
   const [error, setError] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
-  
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+  const [interimText, setInterimText] = useState('');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const recognitionRef = useRef(null);
   const audioRef = useRef(null);
 
   const API_BASE_URL = 'http://localhost:5000';
 
   // Language configuration
   const languages = {
-    'en': { name: 'English', flag: '🇺🇸' },
-    'bn': { name: 'বাংলা (Bengali)', flag: '🇧🇩' }
+    'en': { name: 'English', flag: '🇺🇸', code: 'en-US' },
+    'bn': { name: 'বাংলা (Bengali)', flag: '🇧🇩', code: 'bn-BD' }
   };
 
   useEffect(() => {
-    // Clean up audio URL when component unmounts
+    // Check if browser supports SpeechRecognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError('Speech Recognition is not supported in this browser. Please use Chrome or Edge.');
+    }
+
+    // Cleanup on unmount
     return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
+      stopSpeech();
     };
-  }, [audioUrl]);
+  }, []);
 
   const startRecording = async () => {
     try {
       setError('');
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true
-        } 
-      });
-      
-      // Try different audio formats for better compatibility
-      let options = { mimeType: 'audio/webm' };
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'audio/webm;codecs=opus' };
-        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-          options = { mimeType: 'audio/ogg;codecs=opus' };
-          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-            options = { mimeType: 'audio/wav' };
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-              options = {}; // Use default
-            }
+      setInterimText('');
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setError('Speech Recognition is not supported in this browser. Please use Chrome or Edge.');
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = languages[selectedLanguage].code;
+
+      recognition.onstart = () => {
+        console.log('Speech recognition started');
+        setIsRecording(true);
+      };
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += transcript;
+          } else {
+            interim += transcript;
           }
         }
-      }
-      
-      mediaRecorderRef.current = new MediaRecorder(stream, options);
-      audioChunksRef.current = [];
-      
-      console.log('Using MediaRecorder with:', options.mimeType || 'default format');
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+        if (interim) {
+          setInterimText(interim);
+        }
+        if (final) {
+          setInterimText('');
+          // Stop recording before processing text
+          if (recognitionRef.current) {
+            recognitionRef.current.stop();
+          }
+          processText(final);
         }
       };
 
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        processAudio(audioBlob);
-        
-        // Stop all tracks to free up the microphone
-        stream.getTracks().forEach(track => track.stop());
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setError(`Speech recognition error: ${event.error}`);
+        setIsRecording(false);
+        setInterimText('');
       };
 
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
+      recognition.onend = () => {
+        console.log('Speech recognition ended');
+        setIsRecording(false);
+        setInterimText('');
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
     } catch (err) {
-      setError('Error accessing microphone: ' + err.message);
+      setError('Error starting speech recognition: ' + err.message);
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop();
       setIsRecording(false);
-      setIsProcessing(true);
     }
   };
 
-  const processAudio = async (audioBlob) => {
+  const speakBengali = (text) => {
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
-      formData.append('language', selectedLanguage);
+      setIsSpeaking(true);
+      // Encode text for URL
+      const encodedText = encodeURIComponent(text);
+      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=bn&client=tw-ob&q=${encodedText}`;
 
-      const response = await axios.post(`${API_BASE_URL}/web/process-audio`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      // Create audio element
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onloadstart = () => {
+        console.log('Loading Bengali audio...');
+      };
+
+      audio.onplay = () => {
+        console.log('Speaking Bengali...');
+      };
+
+      audio.onended = () => {
+        console.log('Finished speaking Bengali');
+        setIsSpeaking(false);
+        audioRef.current = null;
+      };
+
+      audio.onerror = (err) => {
+        console.error('Error playing Bengali audio:', err);
+        setError('Could not play Bengali audio. Check internet connection.');
+        setIsSpeaking(false);
+        audioRef.current = null;
+      };
+
+      audio.play().catch((err) => {
+        console.error('Audio play error:', err);
+        setError('Could not play audio');
+        setIsSpeaking(false);
+        audioRef.current = null;
       });
+    } catch (err) {
+      console.error('Error in speakBengali:', err);
+      setError('Error playing Bengali audio: ' + err.message);
+      setIsSpeaking(false);
+    }
+  };
 
-      const { user_text, llm_response, audio_id } = response.data;
-      
+  const speakEnglish = (text) => {
+    try {
+      const synth = window.speechSynthesis;
+      if (!synth) {
+        setError('Speech synthesis not supported in this browser');
+        return;
+      }
+
+      setIsSpeaking(true);
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      utterance.onstart = () => {
+        console.log('Speaking English...');
+      };
+
+      utterance.onend = () => {
+        console.log('Finished speaking English');
+        setIsSpeaking(false);
+      };
+
+      utterance.onerror = (event) => {
+        console.error('Speech error:', event);
+        setError(`Error speaking: ${event.error}`);
+        setIsSpeaking(false);
+      };
+
+      synth.speak(utterance);
+    } catch (err) {
+      console.error('Error in speakEnglish:', err);
+      setError('Error speaking English: ' + err.message);
+      setIsSpeaking(false);
+    }
+  };
+
+  const speakResponse = (text, language) => {
+    // Stop any ongoing speech
+    stopSpeech();
+
+    if (language === 'bn') {
+      speakBengali(text);
+    } else {
+      speakEnglish(text);
+    }
+  };
+
+  const stopSpeech = () => {
+    // Stop audio element if playing
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    // Stop speech synthesis
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    setIsSpeaking(false);
+  };
+
+  const processText = async (text) => {
+    try {
+      setIsProcessing(true);
+      setError('');
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Not authenticated. Please log in.');
+        setIsProcessing(false);
+        return;
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/process-text`,
+        { 'user-text': text },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const { user_text, llm_response } = response.data;
+
       setUserText(user_text);
       setLlmResponse(llm_response);
-      
+
       // Add to conversation history
       setConversationHistory(prev => [...prev, {
         id: Date.now(),
@@ -122,47 +260,23 @@ const SpeechToText = () => {
         timestamp: new Date().toLocaleTimeString()
       }]);
 
-      // Get audio response
-      const audioResponse = await axios.get(`${API_BASE_URL}/get-audio/${audio_id}`, {
-        responseType: 'blob'
-      });
-
-      const audioUrl = URL.createObjectURL(audioResponse.data);
-      setAudioUrl(audioUrl);
-
       // Auto-play the response
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.play();
-      }
-
-      // Clean up the temporary file on the server
-      setTimeout(() => {
-        axios.delete(`${API_BASE_URL}/cleanup/${audio_id}`).catch(console.error);
-      }, 30000); // Clean up after 30 seconds
+      speakResponse(llm_response, selectedLanguage);
 
     } catch (err) {
-      setError('Error processing audio: ' + (err.response?.data?.error || err.message));
+      setError('Error processing text: ' + (err.response?.data?.error || err.message));
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const playResponse = () => {
-    if (audioRef.current && audioUrl) {
-      audioRef.current.play();
-    }
-  };
-
   const clearConversation = () => {
+    stopSpeech();
     setConversationHistory([]);
     setUserText('');
     setLlmResponse('');
     setError('');
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl('');
-    }
+    setInterimText('');
   };
 
   return (
@@ -197,33 +311,42 @@ const SpeechToText = () => {
         </div>
 
         {/* Recording Controls */}
-        <div className="flex justify-center">
-          {!isRecording && !isProcessing && (
-            <Button 
-              onClick={startRecording}
-              size="lg"
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Mic className="w-5 h-5 mr-2" />
-              Start Recording
-            </Button>
-          )}
-          
-          {isRecording && (
-            <Button 
-              onClick={stopRecording}
-              size="lg"
-              variant="destructive"
-            >
-              <MicOff className="w-5 h-5 mr-2" />
-              Stop Recording
-            </Button>
-          )}
+        <div className="flex flex-col items-center space-y-4">
+          <div className="flex justify-center">
+            {!isRecording && !isProcessing && (
+              <Button
+                onClick={startRecording}
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Mic className="w-5 h-5 mr-2" />
+                Start Recording
+              </Button>
+            )}
 
-          {isProcessing && (
-            <div className="flex items-center space-x-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Processing your audio...</span>
+            {isRecording && (
+              <Button
+                onClick={stopRecording}
+                size="lg"
+                variant="destructive"
+              >
+                <MicOff className="w-5 h-5 mr-2" />
+                Stop Recording
+              </Button>
+            )}
+
+            {isProcessing && (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Processing your text...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Show interim transcription */}
+          {interimText && (
+            <div className="bg-gray-100 p-3 rounded-lg border border-gray-300 text-gray-600 italic">
+              <span className="text-sm">Listening: {interimText}</span>
             </div>
           )}
         </div>
@@ -253,28 +376,35 @@ const SpeechToText = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <strong className="text-green-800">AI Response:</strong>
-                      <p className="mt-1"><ReactMarkdown>{llmResponse}</ReactMarkdown></p>
+                      <div className="mt-1"><ReactMarkdown>{llmResponse}</ReactMarkdown></div>
                     </div>
-                    {audioUrl && (
-                      <Button
-                        onClick={playResponse}
-                        variant="outline"
-                        size="sm"
-                        className="ml-4"
-                      >
-                        <Volume2 className="w-4 h-4 mr-1" />
-                        Play
-                      </Button>
-                    )}
+                    <div className="flex gap-2 ml-4">
+                      {!isSpeaking ? (
+                        <Button
+                          onClick={() => speakResponse(llmResponse, selectedLanguage)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Volume2 className="w-4 h-4 mr-1" />
+                          Play
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={stopSpeech}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <VolumeX className="w-4 h-4 mr-1" />
+                          Stop
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
         )}
-
-        {/* Audio Player (hidden) */}
-        <audio ref={audioRef} style={{ display: 'none' }} />
 
         {/* Conversation History */}
         {conversationHistory.length > 0 && (

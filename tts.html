@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Text-to-Speech - English & Bengali (with Fallback)</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 700px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 28px;
+      }
+
+      .language-selector {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .lang-btn {
+        padding: 12px 24px;
+        border: 2px solid #f5576c;
+        background: white;
+        color: #f5576c;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .lang-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(245, 87, 108, 0.3);
+      }
+
+      .lang-btn.active {
+        background: #f5576c;
+        color: white;
+      }
+
+      .method-info {
+        text-align: center;
+        padding: 10px;
+        background: #e6f7ff;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #0050b3;
+      }
+
+      .input-section {
+        margin-bottom: 30px;
+      }
+
+      .input-section label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #333;
+        font-size: 16px;
+      }
+
+      .text-input {
+        width: 100%;
+        min-height: 150px;
+        padding: 15px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 16px;
+        font-family: inherit;
+        resize: vertical;
+        transition: border-color 0.3s ease;
+      }
+
+      .text-input:focus {
+        outline: none;
+        border-color: #f5576c;
+      }
+
+      .voice-controls {
+        margin-bottom: 30px;
+      }
+
+      .control-group {
+        margin-bottom: 20px;
+      }
+
+      .control-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+      }
+
+      .voice-select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 14px;
+        background: white;
+        cursor: pointer;
+        transition: border-color 0.3s ease;
+      }
+
+      .voice-select:focus {
+        outline: none;
+        border-color: #f5576c;
+      }
+
+      .slider-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 20px;
+      }
+
+      .slider-container {
+        flex: 1;
+      }
+
+      .slider {
+        width: 100%;
+        height: 6px;
+        border-radius: 5px;
+        background: #e2e8f0;
+        outline: none;
+        -webkit-appearance: none;
+      }
+
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #f5576c;
+        cursor: pointer;
+      }
+
+      .slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #f5576c;
+        cursor: pointer;
+        border: none;
+      }
+
+      .slider-value {
+        display: inline-block;
+        margin-left: 10px;
+        font-weight: 600;
+        color: #f5576c;
+      }
+
+      .controls {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        padding: 15px 30px;
+        border: none;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .speak-btn {
+        background: #48bb78;
+        color: white;
+      }
+
+      .speak-btn:hover:not(:disabled) {
+        background: #38a169;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(72, 187, 120, 0.3);
+      }
+
+      .speak-btn:disabled {
+        background: #a0aec0;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .pause-btn {
+        background: #ed8936;
+        color: white;
+      }
+
+      .pause-btn:hover:not(:disabled) {
+        background: #dd6b20;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(237, 137, 54, 0.3);
+      }
+
+      .pause-btn:disabled {
+        background: #a0aec0;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .stop-btn {
+        background: #f56565;
+        color: white;
+      }
+
+      .stop-btn:hover:not(:disabled) {
+        background: #e53e3e;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(245, 101, 101, 0.3);
+      }
+
+      .stop-btn:disabled {
+        background: #a0aec0;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .status {
+        text-align: center;
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 20px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .status.speaking {
+        background: #c6f6d5;
+        color: #22543d;
+      }
+
+      .status.paused {
+        background: #feebc8;
+        color: #7c2d12;
+      }
+
+      .status.idle {
+        background: #e2e8f0;
+        color: #4a5568;
+      }
+
+      .status.error {
+        background: #fed7d7;
+        color: #742a2a;
+      }
+
+      .info {
+        margin-top: 20px;
+        padding: 15px;
+        background: #e6fffa;
+        border-radius: 10px;
+        font-size: 14px;
+        color: #234e52;
+      }
+
+      .sample-texts {
+        margin-top: 20px;
+      }
+
+      .sample-texts h3 {
+        font-size: 16px;
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .sample-btn {
+        display: inline-block;
+        margin: 5px;
+        padding: 8px 16px;
+        background: #e2e8f0;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+      }
+
+      .sample-btn:hover {
+        background: #cbd5e0;
+        transform: translateY(-1px);
+      }
+
+      .pulse {
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #856404;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔊 Text-to-Speech</h1>
+
+      <div class="language-selector">
+        <button
+          class="lang-btn active"
+          data-lang="en"
+        >
+          🇺🇸 English
+        </button>
+        <button
+          class="lang-btn"
+          data-lang="bn"
+        >
+          🇧🇩 বাংলা (Bengali)
+        </button>
+      </div>
+
+      <div
+        class="method-info"
+        id="methodInfo"
+      >
+        Using: Browser TTS
+      </div>
+
+      <div
+        id="bengaliWarning"
+        class="warning-box"
+        style="display: none"
+      >
+        ⚠️
+        <strong>Bengali voice will use Google Translate TTS</strong> (requires
+        internet connection)
+      </div>
+
+      <div class="input-section">
+        <label for="textInput">Enter text to speak:</label>
+        <textarea
+          class="text-input"
+          id="textInput"
+          placeholder="Type your text here and click Speak..."
+        ></textarea>
+      </div>
+
+      <div
+        class="voice-controls"
+        id="voiceControls"
+      >
+        <div class="control-group">
+          <label for="voiceSelect">Voice: <span id="voiceCount"></span></label>
+          <select
+            class="voice-select"
+            id="voiceSelect"
+          ></select>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-container">
+            <label for="rateSlider">
+              Speed:
+              <span
+                class="slider-value"
+                id="rateValue"
+                >1.0x</span
+              >
+            </label>
+            <input
+              type="range"
+              class="slider"
+              id="rateSlider"
+              min="0.5"
+              max="2"
+              step="0.1"
+              value="1"
+            />
+          </div>
+
+          <div class="slider-container">
+            <label for="pitchSlider">
+              Pitch:
+              <span
+                class="slider-value"
+                id="pitchValue"
+                >1.0</span
+              >
+            </label>
+            <input
+              type="range"
+              class="slider"
+              id="pitchSlider"
+              min="0.5"
+              max="2"
+              step="0.1"
+              value="1"
+            />
+          </div>
+
+          <div class="slider-container">
+            <label for="volumeSlider">
+              Volume:
+              <span
+                class="slider-value"
+                id="volumeValue"
+                >100%</span
+              >
+            </label>
+            <input
+              type="range"
+              class="slider"
+              id="volumeSlider"
+              min="0"
+              max="1"
+              step="0.1"
+              value="1"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button
+          class="btn speak-btn"
+          id="speakBtn"
+        >
+          <span>▶</span> Speak
+        </button>
+        <button
+          class="btn pause-btn"
+          id="pauseBtn"
+          disabled
+        >
+          <span>⏸</span> Pause
+        </button>
+        <button
+          class="btn stop-btn"
+          id="stopBtn"
+          disabled
+        >
+          <span>⏹</span> Stop
+        </button>
+      </div>
+
+      <div
+        class="status idle"
+        id="status"
+      >
+        Ready to speak
+      </div>
+
+      <div class="sample-texts">
+        <h3>Sample Texts:</h3>
+        <button
+          class="sample-btn"
+          data-lang="en"
+          data-text="Hello! Welcome to the text-to-speech demonstration. This is a simple example of converting text to speech."
+        >
+          English Sample
+        </button>
+        <button
+          class="sample-btn"
+          data-lang="bn"
+          data-text="নমস্কার! টেক্সট টু স্পিচ ডেমোনস্ট্রেশনে আপনাকে স্বাগতম।"
+        >
+          Bengali Sample 1
+        </button>
+        <button
+          class="sample-btn"
+          data-lang="bn"
+          data-text="আমি বাংলা ভাষায় কথা বলতে পারি।"
+        >
+          Bengali Sample 2
+        </button>
+      </div>
+
+      <div class="info">
+        <strong>How it works:</strong>
+        <ul style="margin-left: 20px; margin-top: 10px">
+          <li>
+            <strong>English:</strong> Uses your browser's built-in TTS voices
+          </li>
+          <li>
+            <strong>Bengali:</strong> Uses Google Translate TTS API (requires
+            internet)
+          </li>
+          <li>Type or paste text, select language, and click "Speak"</li>
+          <li>Adjust speed, pitch, and volume for English voices</li>
+          <li>
+            For Bengali, speed/pitch controls don't apply (Google TTS
+            limitation)
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      const synth = window.speechSynthesis;
+      let voices = [];
+      let currentLanguage = 'en';
+      let utterance = null;
+      let isPaused = false;
+      let currentAudio = null;
+
+      // Get DOM elements
+      const textInput = document.getElementById('textInput');
+      const voiceSelect = document.getElementById('voiceSelect');
+      const voiceCount = document.getElementById('voiceCount');
+      const voiceControls = document.getElementById('voiceControls');
+      const methodInfo = document.getElementById('methodInfo');
+      const bengaliWarning = document.getElementById('bengaliWarning');
+      const rateSlider = document.getElementById('rateSlider');
+      const pitchSlider = document.getElementById('pitchSlider');
+      const volumeSlider = document.getElementById('volumeSlider');
+      const rateValue = document.getElementById('rateValue');
+      const pitchValue = document.getElementById('pitchValue');
+      const volumeValue = document.getElementById('volumeValue');
+      const speakBtn = document.getElementById('speakBtn');
+      const pauseBtn = document.getElementById('pauseBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const status = document.getElementById('status');
+      const langBtns = document.querySelectorAll('.lang-btn');
+      const sampleBtns = document.querySelectorAll('.sample-btn');
+
+      // Load voices
+      function loadVoices() {
+        voices = synth.getVoices();
+        if (currentLanguage === 'en') {
+          populateVoiceList();
+        }
+      }
+
+      // Populate voice dropdown for English
+      function populateVoiceList() {
+        voiceSelect.innerHTML = '';
+
+        const englishVoices = voices.filter((voice) =>
+          voice.lang.startsWith('en')
+        );
+
+        if (englishVoices.length === 0) {
+          englishVoices.push(...voices);
+        }
+
+        englishVoices.forEach((voice) => {
+          const option = document.createElement('option');
+          option.textContent = `${voice.name} (${voice.lang})${
+            voice.default ? ' - Default' : ''
+          }`;
+          option.setAttribute('data-name', voice.name);
+          option.setAttribute('data-lang', voice.lang);
+          voiceSelect.appendChild(option);
+        });
+
+        voiceCount.textContent = `(${englishVoices.length} available)`;
+      }
+
+      // Load voices when available
+      loadVoices();
+      if (synth.onvoiceschanged !== undefined) {
+        synth.onvoiceschanged = loadVoices;
+      }
+
+      // Update UI based on language
+      function updateUIForLanguage() {
+        if (currentLanguage === 'bn') {
+          voiceControls.style.display = 'none';
+          methodInfo.textContent = 'Using: Google Translate TTS';
+          methodInfo.style.background = '#fff3cd';
+          methodInfo.style.color = '#856404';
+          bengaliWarning.style.display = 'block';
+        } else {
+          voiceControls.style.display = 'block';
+          methodInfo.textContent = 'Using: Browser TTS';
+          methodInfo.style.background = '#e6f7ff';
+          methodInfo.style.color = '#0050b3';
+          bengaliWarning.style.display = 'none';
+          populateVoiceList();
+        }
+      }
+
+      // Language selection
+      langBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          // Stop any current speech
+          stopSpeaking();
+
+          langBtns.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentLanguage = btn.dataset.lang;
+
+          updateUIForLanguage();
+
+          const langName = currentLanguage === 'en' ? 'English' : 'বাংলা';
+          updateStatus(`Language changed to ${langName}`, 'idle');
+        });
+      });
+
+      // Sample text buttons
+      sampleBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const text = btn.dataset.text;
+          const lang = btn.dataset.lang;
+          textInput.value = text;
+
+          // Switch language if needed
+          if (lang !== currentLanguage) {
+            const targetBtn = Array.from(langBtns).find(
+              (b) => b.dataset.lang === lang
+            );
+            if (targetBtn) targetBtn.click();
+          }
+        });
+      });
+
+      // Slider controls
+      rateSlider.addEventListener('input', (e) => {
+        rateValue.textContent = `${e.target.value}x`;
+      });
+
+      pitchSlider.addEventListener('input', (e) => {
+        pitchValue.textContent = e.target.value;
+      });
+
+      volumeSlider.addEventListener('input', (e) => {
+        volumeValue.textContent = `${Math.round(e.target.value * 100)}%`;
+      });
+
+      // Bengali TTS using Google Translate
+      function speakBengali(text) {
+        // Encode text for URL
+        const encodedText = encodeURIComponent(text);
+        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=bn&client=tw-ob&q=${encodedText}`;
+
+        // Create audio element
+        currentAudio = new Audio(audioUrl);
+        currentAudio.volume = parseFloat(volumeSlider.value);
+
+        currentAudio.onloadstart = () => {
+          updateStatus('Loading Bengali audio...', 'speaking');
+          speakBtn.disabled = true;
+          stopBtn.disabled = false;
+        };
+
+        currentAudio.onplay = () => {
+          updateStatus('Speaking Bengali...', 'speaking');
+        };
+
+        currentAudio.onended = () => {
+          updateStatus('Finished speaking', 'idle');
+          resetButtons();
+        };
+
+        currentAudio.onerror = () => {
+          updateStatus(
+            'Error: Could not load Bengali audio. Check internet connection.',
+            'error'
+          );
+          resetButtons();
+        };
+
+        currentAudio.play().catch((err) => {
+          console.error('Audio play error:', err);
+          updateStatus('Error: Could not play audio', 'error');
+          resetButtons();
+        });
+      }
+
+      // English TTS using Web Speech API
+      function speakEnglish(text) {
+        utterance = new SpeechSynthesisUtterance(text);
+
+        const selectedVoiceName =
+          voiceSelect.selectedOptions[0].getAttribute('data-name');
+        const selectedVoice = voices.find(
+          (voice) => voice.name === selectedVoiceName
+        );
+
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+        }
+
+        utterance.rate = parseFloat(rateSlider.value);
+        utterance.pitch = parseFloat(pitchSlider.value);
+        utterance.volume = parseFloat(volumeSlider.value);
+        utterance.lang = 'en-US';
+
+        utterance.onstart = () => {
+          updateStatus('Speaking...', 'speaking');
+          speakBtn.disabled = true;
+          pauseBtn.disabled = false;
+          stopBtn.disabled = false;
+        };
+
+        utterance.onend = () => {
+          updateStatus('Finished speaking', 'idle');
+          resetButtons();
+          isPaused = false;
+        };
+
+        utterance.onerror = (event) => {
+          console.error('Speech error:', event);
+          updateStatus(`Error: ${event.error}`, 'error');
+          resetButtons();
+          isPaused = false;
+        };
+
+        synth.speak(utterance);
+      }
+
+      // Stop speaking
+      function stopSpeaking() {
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio = null;
+        }
+        synth.cancel();
+        isPaused = false;
+      }
+
+      // Speak button
+      speakBtn.addEventListener('click', () => {
+        const text = textInput.value.trim();
+
+        if (text === '') {
+          updateStatus('Please enter some text', 'idle');
+          return;
+        }
+
+        // If paused (English only), resume
+        if (isPaused && currentLanguage === 'en') {
+          synth.resume();
+          isPaused = false;
+          updateStatus('Speaking...', 'speaking');
+          speakBtn.disabled = true;
+          pauseBtn.disabled = false;
+          stopBtn.disabled = false;
+          pauseBtn.innerHTML = '<span>⏸</span> Pause';
+          return;
+        }
+
+        // Stop any ongoing speech
+        stopSpeaking();
+
+        // Speak based on language
+        if (currentLanguage === 'bn') {
+          speakBengali(text);
+        } else {
+          speakEnglish(text);
+        }
+      });
+
+      // Pause button (English only)
+      pauseBtn.addEventListener('click', () => {
+        if (currentLanguage !== 'en') return;
+
+        if (isPaused) {
+          synth.resume();
+          isPaused = false;
+          updateStatus('Speaking...', 'speaking');
+          pauseBtn.innerHTML = '<span>⏸</span> Pause';
+        } else {
+          synth.pause();
+          isPaused = true;
+          updateStatus('Paused', 'paused');
+          pauseBtn.innerHTML = '<span>▶</span> Resume';
+        }
+      });
+
+      // Stop button
+      stopBtn.addEventListener('click', () => {
+        stopSpeaking();
+        updateStatus('Stopped', 'idle');
+        resetButtons();
+      });
+
+      // Helper functions
+      function updateStatus(message, type) {
+        status.textContent = message;
+        status.className = `status ${type}`;
+
+        if (type === 'speaking') {
+          status.classList.add('pulse');
+        } else {
+          status.classList.remove('pulse');
+        }
+      }
+
+      function resetButtons() {
+        speakBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = true;
+        pauseBtn.innerHTML = '<span>⏸</span> Pause';
+      }
+
+      // Initialize UI
+      updateUIForLanguage();
+    </script>
+  </body>
+</html>
