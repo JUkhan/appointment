@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Mic, MicOff, Loader2, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import {stripMarkdown} from './utils';
 
 const SpeechToText = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -261,7 +262,7 @@ const SpeechToText = () => {
       }]);
 
       // Auto-play the response
-      speakResponse(llm_response, selectedLanguage);
+      speakResponse(stripMarkdown(llm_response), selectedLanguage);
 
     } catch (err) {
       setError('Error processing text: ' + (err.response?.data?.error || err.message));
