@@ -221,9 +221,8 @@ def process_text():
         data = request.get_json()
         user_text = data.get('user-text')
         user_id_str = get_jwt_identity()
-        print('user id:', user_id_str)
+        print('user text:', user_text)
         llm_response = run_chatbot(user_text, user_id_str)
-        print('llm: ', llm_response)
         return jsonify({
             'user_text': user_text,
             'llm_response': llm_response,
