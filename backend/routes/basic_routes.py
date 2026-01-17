@@ -386,6 +386,50 @@ def cancel_appointment(appointment_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/tts', methods=['POST'])
+@jwt_required()
+def text_to_speech():
+    try:
+        data = request.get_json()
+        text = data.get('text')
+        language = data.get('language', 'en')
+
+        if not text:
+            return jsonify({'error': 'Text is required'}), 400
+
+        unique_id = str(uuid.uuid4())
+        temp_output_path = f'temp_audio/output_{unique_id}.wav'
+
+        try:
+            gen_audio_file(temp_output_path, text)
+            return send_file(
+                temp_output_path,
+                mimetype='audio/wav',
+                as_attachment=False,
+                download_name='speech.wav'
+            )
+        except Exception as e:
+            print(f"Error generating audio: {str(e)}")
+            return jsonify({'error': f'TTS error: {str(e)}'}), 500
+        finally:
+            # Cleanup after sending
+            if os.path.exists(temp_output_path):
+                try:
+                    # Delay cleanup slightly to ensure file is sent
+                    import threading
+                    def delayed_cleanup():
+                        import time
+                        time.sleep(2)
+                        if os.path.exists(temp_output_path):
+                            os.remove(temp_output_path)
+                    threading.Thread(target=delayed_cleanup, daemon=True).start()
+                except:
+                    pass
+
+    except Exception as e:
+        print(f"Error in TTS endpoint: {str(e)}")
+        return jsonify({'error': f'Processing error: {str(e)}'}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy', 'message': 'Speech-to-text and appointment booking service is running'})

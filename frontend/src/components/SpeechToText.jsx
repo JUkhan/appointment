@@ -115,12 +115,34 @@ const SpeechToText = () => {
     }
   };
 
-  const speakBengali = (text) => {
+  const speakBengali = async (text) => {
     try {
+      console.log('Preparing to speak Bengali text...', text);
       setIsSpeaking(true);
-      // Encode text for URL
-      const encodedText = encodeURIComponent(text);
-      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=bn&client=tw-ob&q=${encodedText}`;
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Not authenticated. Please log in.');
+        setIsSpeaking(false);
+        return;
+      }
+
+      // Call backend TTS endpoint
+      const response = await axios.post(
+        `${API_BASE_URL}/tts`,
+        { text, language: 'bn' },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          responseType: 'blob'
+        }
+      );
+
+      // Create blob URL from response
+      const audioBlob = new Blob([response.data], { type: 'audio/wav' });
+      const audioUrl = URL.createObjectURL(audioBlob);
 
       // Create audio element
       const audio = new Audio(audioUrl);
@@ -138,13 +160,15 @@ const SpeechToText = () => {
         console.log('Finished speaking Bengali');
         setIsSpeaking(false);
         audioRef.current = null;
+        URL.revokeObjectURL(audioUrl); // Cleanup blob URL
       };
 
       audio.onerror = (err) => {
         console.error('Error playing Bengali audio:', err);
-        setError('Could not play Bengali audio. Check internet connection.');
+        setError('Could not play Bengali audio.');
         setIsSpeaking(false);
         audioRef.current = null;
+        URL.revokeObjectURL(audioUrl);
       };
 
       audio.play().catch((err) => {
@@ -152,10 +176,11 @@ const SpeechToText = () => {
         setError('Could not play audio');
         setIsSpeaking(false);
         audioRef.current = null;
+        URL.revokeObjectURL(audioUrl);
       });
     } catch (err) {
       console.error('Error in speakBengali:', err);
-      setError('Error playing Bengali audio: ' + err.message);
+      setError('Error playing Bengali audio: ' + (err.response?.data?.error || err.message));
       setIsSpeaking(false);
     }
   };
@@ -202,7 +227,6 @@ const SpeechToText = () => {
   const speakResponse = (text, language) => {
     // Stop any ongoing speech
     stopSpeech();
-
     if (language === 'bn') {
       speakBengali(text);
     } else {
@@ -224,7 +248,7 @@ const SpeechToText = () => {
 
     setIsSpeaking(false);
   };
-
+  
   const processText = async (text) => {
     try {
       setIsProcessing(true);
