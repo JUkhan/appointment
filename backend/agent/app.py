@@ -66,8 +66,10 @@ def run_chatbot(user_input, thread_id):
     response = app.invoke(initial_state, config=config)
     
     last_message = response["messages"][-1]
+    print('last message:', last_message)
     content = extract_message_content(last_message)
-    
+    if not content:
+        print('all response:',response)
     print("len:", len(response["messages"]), 'last content:', content)
     return content
 

@@ -23,17 +23,24 @@ def calculate_date(doctor_availability:str, date_info:str):
   try:
     return f'appointment_date: {parse_date_string(date_info)}'
   except:
-    
-    user=f"""
-       current date: {date.today()}
-       doctor's available days: {doctor_availability}  
-       find an available date in current year or next based on: {date_info} 
-       only answer the date of format: yyyy-mm-dd 
-      """
-    
+
+    system_prompt = """You are a date calculation assistant. Given a doctor's availability schedule and user's date request, find the next available date that matches both criteria.
+
+Rules:
+- Only suggest dates when the doctor is available
+- Consider the current date and find dates in the current or next year
+- Return ONLY the date in format: YYYY-MM-DD
+- No explanations, just the date"""
+
+    user_prompt = f"""Current date: {date.today()}
+Doctor's available days: {doctor_availability}
+User's date preference: {date_info}
+
+Find the next available date:"""
+
     response = model.invoke([
-      ('system', 'You are my AI assistant, please answer my query to the best of your ability.'),
-      ('human', user)
+      ('system', system_prompt),
+      ('human', user_prompt)
     ])
     date_str=extract_message_content(response)
     print("available_date from calculate_date tool:", date_str)
@@ -59,9 +66,24 @@ tools=[cancel_doctor_appointment,calculate_date, doctor_appointment, doctor_list
 tools_model = model.bind_tools(tools)
 
 def model_call(state: GraphState):
-  print(state['messages'][0])
-  context=f"You are my AI assistant, please answer my query to the best of your ability. {state['messages'][0].content} - ask patient if he does not mention doctor name: \"doctor's name or reasoning to see a doctor\". use doctor_list tool to get doctor details. before calling doctor_appointment tool we need to take user confirmation showing all inputs."
-  response=tools_model.invoke([('system',context)]+state['messages'])
+  # Extract user_id from the first message
+  first_message = extract_message_content(state['messages'][0]) #state['messages'][0].content if hasattr(state['messages'][0], 'content') else str(state['messages'][0][1])
+
+  system_prompt = f"""You are a medical appointment booking assistant. Your role is to help patients book appointments with doctors.
+
+IMPORTANT: When calling the doctor_appointment tool, always use this {first_message}
+
+Guidelines:
+1. If the patient hasn't mentioned a doctor's name or reason for visit, politely ask for this information
+2. Use the doctor_list tool to retrieve available doctors
+3. Before calling doctor_appointment tool, confirm ALL booking details with the patient:
+   - Doctor name
+   - Appointment date
+   - Patient name
+   - Patient age
+4. Be professional and helpful"""
+  print(system_prompt)
+  response=tools_model.invoke([('system', system_prompt)]+state['messages'])
   state['messages']=[response]
   return state
 
