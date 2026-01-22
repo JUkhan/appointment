@@ -8,7 +8,15 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { Audio } from 'expo-av';
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  getRecordingPermissionsAsync,
+  IOSOutputFormat,
+  AudioQuality
+} from 'expo-audio';
+import type { RecordingOptions } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import Markdown from 'react-native-markdown-display';
 import { apiService } from '../services/apiService';
@@ -24,37 +32,55 @@ interface Message {
   timestamp: Date;
 }
 
+// Custom recording options optimized for speech recognition
+// Using M4A/AAC for better compatibility across platforms
+const SPEECH_RECORDING_OPTIONS: RecordingOptions = {
+  extension: '.m4a',
+  sampleRate: 44100, // Higher quality for better recognition
+  numberOfChannels: 1, // Mono for speech
+  bitRate: 128000,
+  android: {
+    extension: '.m4a',
+    outputFormat: 'mpeg4', // AAC in MPEG4 container
+    audioEncoder: 'aac',
+  },
+  ios: {
+    extension: '.m4a',
+    outputFormat: IOSOutputFormat.MPEG4AAC,
+    audioQuality: AudioQuality.MAX, // Maximum quality
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+  web: {
+    mimeType: 'audio/webm',
+    bitsPerSecond: 128000,
+  },
+};
+
 export const VoiceAssistantScreen = () => {
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
+  const audioRecorder = useAudioRecorder(SPEECH_RECORDING_OPTIONS);
   const [messages, setMessages] = useState<Message[]>([]);
   const [language, setLanguage] = useState<'en' | 'bn'>('en');
   const [processing, setProcessing] = useState(false);
-  const [permissionResponse, requestPermission] = Audio.usePermissions();
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Cleanup interval on unmount
   useEffect(() => {
-    // Request audio permission on mount
-    if (Platform.OS !== 'web') {
-      setupAudio();
-    }
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
   }, []);
-
-  const setupAudio = async () => {
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-    } catch (error) {
-      console.error('Failed to setup audio:', error);
-    }
-  };
 
   const startRecording = async () => {
     try {
       // Request permission if not granted
-      if (permissionResponse && permissionResponse.status !== 'granted') {
-        const permission = await requestPermission();
+      const permissionStatus = await getRecordingPermissionsAsync();
+      if (permissionStatus.status !== 'granted') {
+        const permission = await requestRecordingPermissionsAsync();
         if (permission.status !== 'granted') {
           Alert.alert(
             'Permission Required',
@@ -64,13 +90,15 @@ export const VoiceAssistantScreen = () => {
         }
       }
 
-      // Start recording
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      // Prepare and start recording
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
 
-      setRecording(recording);
-      setIsRecording(true);
+      // Start duration counter
+      setRecordingDuration(0);
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
     } catch (error: any) {
       Alert.alert('Error', 'Failed to start recording. Please try again.');
       console.error('Failed to start recording:', error);
@@ -78,21 +106,41 @@ export const VoiceAssistantScreen = () => {
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
+    if (!audioRecorder.isRecording) return;
 
     try {
-      setIsRecording(false);
-      await recording.stopAndUnloadAsync();
+      // Clear the duration counter
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
 
-      const uri = recording.getURI();
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+
+      console.log('Recording stopped');
+      console.log('Duration:', recordingDuration, 'seconds');
+      console.log('URI:', uri);
+
+      // Check minimum duration
+      if (recordingDuration < 1) {
+        Alert.alert(
+          'Recording Too Short',
+          'Please record for at least 1 second. Tap and hold the microphone button while speaking.'
+        );
+        setRecordingDuration(0);
+        return;
+      }
+
       if (uri) {
         await processAudio(uri);
       }
 
-      setRecording(null);
+      setRecordingDuration(0);
     } catch (error: any) {
       Alert.alert('Error', 'Failed to stop recording. Please try again.');
       console.error('Failed to stop recording:', error);
+      setRecordingDuration(0);
     }
   };
 
@@ -100,6 +148,9 @@ export const VoiceAssistantScreen = () => {
     setProcessing(true);
 
     try {
+      console.log('Processing audio URI:', audioUri);
+      console.log('Language:', language);
+
       const response = await apiService.processAudio(audioUri, language);
       console.log('API response:', response);
 
@@ -128,11 +179,16 @@ export const VoiceAssistantScreen = () => {
       // Play audio response
       playAudioResponse(response.llm_response);
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        'Failed to process audio. Please check your connection and try again.'
-      );
       console.error('Failed to process audio:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+
+      const errorMessage = error.response?.data?.error ||
+                          error.response?.data?.message ||
+                          'Failed to process audio. Please check your connection and try again.';
+
+      Alert.alert('Error', errorMessage);
     } finally {
       setProcessing(false);
     }
@@ -171,7 +227,7 @@ export const VoiceAssistantScreen = () => {
   };
 
   const handleRecordPress = () => {
-    if (isRecording) {
+    if (audioRecorder.isRecording) {
       stopRecording();
     } else {
       startRecording();
@@ -293,7 +349,7 @@ export const VoiceAssistantScreen = () => {
         <TouchableOpacity
           style={[
             styles.recordButton,
-            isRecording && styles.recordButtonActive,
+            audioRecorder.isRecording && styles.recordButtonActive,
             processing && styles.recordButtonDisabled,
           ]}
           onPress={handleRecordPress}
@@ -303,7 +359,7 @@ export const VoiceAssistantScreen = () => {
           <Text style={styles.recordButtonText}>
             {processing
               ? '⏳'
-              : isRecording
+              : audioRecorder.isRecording
                 ? '⏹'
                 : '🎤'}
           </Text>
@@ -311,8 +367,8 @@ export const VoiceAssistantScreen = () => {
         <Text style={styles.footerText}>
           {processing
             ? 'Processing...'
-            : isRecording
-              ? 'Recording... (Tap to stop)'
+            : audioRecorder.isRecording
+              ? `Recording... ${recordingDuration}s (Tap to stop)`
               : 'Tap to start recording'}
         </Text>
       </View>

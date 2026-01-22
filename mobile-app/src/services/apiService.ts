@@ -193,12 +193,25 @@ class ApiService {
   ): Promise<ProcessAudioResponse> {
     const formData = new FormData();
 
+    // Determine file extension and mime type from URI
+    const fileExtension = audioUri.split('.').pop()?.toLowerCase() || 'm4a';
+    const mimeType = fileExtension === 'wav' ? 'audio/wav' :
+                     fileExtension === 'm4a' ? 'audio/m4a' :
+                     fileExtension === '3gp' ? 'audio/3gp' :
+                     'audio/m4a';
+
     // Create audio file object for FormData
     const audioFile: any = {
       uri: audioUri,
-      type: 'audio/wav',
-      name: 'audio.wav',
+      type: mimeType,
+      name: `audio.${fileExtension}`,
     };
+
+    console.log('Sending audio to API:');
+    console.log('- URI:', audioUri);
+    console.log('- Type:', mimeType);
+    console.log('- Name:', `audio.${fileExtension}`);
+    console.log('- Language:', language);
 
     formData.append('audio', audioFile);
     formData.append('language', language);

@@ -17,7 +17,8 @@
       "Bash(ipconfig:*)",
       "Bash(npm uninstall:*)",
       "Bash(curl:*)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

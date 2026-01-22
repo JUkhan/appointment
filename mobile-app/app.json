@@ -9,7 +9,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#0ea5e9"
     },
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourcompany.doctorappointment",
@@ -32,7 +35,8 @@
         {
           "microphonePermission": "Allow Doctor Appointment to access your microphone for voice assistant."
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }
