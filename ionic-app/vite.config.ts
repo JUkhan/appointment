@@ -14,5 +14,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
+  },
+  server: {
+    allowedHosts: ['localhost', 'vienna-holes-must-stocks.trycloudflare.com'],
   }
 })

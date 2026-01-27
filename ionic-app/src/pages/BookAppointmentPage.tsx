@@ -112,9 +112,16 @@ const BookAppointmentPage: React.FC = () => {
       return;
     }
 
-    const age = patientAge ? parseInt(patientAge) : undefined;
-    if (patientAge && !validatePatientAge(age)) {
-      setToastMessage('Please enter a valid age');
+    if (!patientAge || patientAge.trim() === '') {
+      setToastMessage('Please enter patient age');
+      setToastColor('danger');
+      setShowToast(true);
+      return;
+    }
+
+    const age = parseInt(patientAge);
+    if (!validatePatientAge(age)) {
+      setToastMessage('Please enter a valid age (1-150)');
       setToastColor('danger');
       setShowToast(true);
       return;
@@ -164,6 +171,13 @@ const BookAppointmentPage: React.FC = () => {
           <LoadingSpinner message="Loading doctors..." />
         ) : (
           <>
+            <div style={{ padding: '1rem 0 0.5rem 0' }}>
+              <h3 style={{ margin: '0 0 0.5rem 0' }}>Select a Doctor *</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ion-color-medium)', margin: 0 }}>
+                Choose a doctor to book an appointment
+              </p>
+            </div>
+
             <IonSearchbar
               value={searchQuery}
               onIonInput={(e) => setSearchQuery(e.detail.value || '')}
@@ -196,33 +210,41 @@ const BookAppointmentPage: React.FC = () => {
                 <IonCard>
                   <IonCardContent>
                     <h3>Appointment Details</h3>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--ion-color-medium)', marginBottom: '1rem' }}>
+                      * All fields are required
+                    </p>
 
                     <IonButton
                       expand="block"
                       onClick={() => setShowDateModal(true)}
                       style={{ marginTop: '1rem' }}
+                      color={!selectedDate ? 'medium' : 'primary'}
                     >
                       {selectedDate
                         ? `Selected: ${new Date(selectedDate).toLocaleDateString()}`
-                        : 'Select Date'}
+                        : 'Select Date *'}
                     </IonButton>
 
                     <IonItem>
-                      <IonLabel position="floating">Patient Name</IonLabel>
+                      <IonLabel position="floating">Patient Name *</IonLabel>
                       <IonInput
                         value={patientName}
                         onIonInput={(e) => setPatientName(e.detail.value || '')}
                         disabled={isBooking}
+                        required
                       />
                     </IonItem>
 
                     <IonItem>
-                      <IonLabel position="floating">Patient Age (Optional)</IonLabel>
+                      <IonLabel position="floating">Patient Age *</IonLabel>
                       <IonInput
                         type="number"
                         value={patientAge}
                         onIonInput={(e) => setPatientAge(e.detail.value || '')}
                         disabled={isBooking}
+                        min="1"
+                        max="150"
+                        required
                       />
                     </IonItem>
 

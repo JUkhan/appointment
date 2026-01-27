@@ -61,7 +61,7 @@ export interface CreateAppointmentData {
   doctor_id: number;
   date: string;
   patient_name: string;
-  patient_age?: number;
+  patient_age: number;
 }
 
 export interface ApiError {

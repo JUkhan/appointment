@@ -78,6 +78,14 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = await storageService.getItem(TOKEN_KEYS.REFRESH_TOKEN);
         if (!refreshToken) {
+          // No refresh token available, clear storage and redirect to login
+          isRefreshing = false;
+          await storageService.multiRemove([
+            TOKEN_KEYS.ACCESS_TOKEN,
+            TOKEN_KEYS.REFRESH_TOKEN,
+            TOKEN_KEYS.USER_ID,
+          ]);
+          window.location.href = '/login';
           throw new Error('No refresh token available');
         }
 
@@ -112,7 +120,10 @@ apiClient.interceptors.response.use(
           TOKEN_KEYS.REFRESH_TOKEN,
           TOKEN_KEYS.USER_ID,
         ]);
-        // Redirect to login will be handled by AuthContext
+
+        // Redirect to login page
+        window.location.href = '/login';
+
         return Promise.reject(refreshError);
       }
     }
@@ -143,18 +154,20 @@ export const apiService = {
    * Get all doctors
    */
   async getDoctors(): Promise<Doctor[]> {
-    const response = await apiClient.get<{ doctors: Doctor[] }>(API_ENDPOINTS.DOCTORS);
-    return response.data.doctors;
+    const response = await apiClient.get<Doctor[] | { doctors: Doctor[] }>(API_ENDPOINTS.DOCTORS);
+    // Handle both direct array and wrapped object response
+    return Array.isArray(response.data) ? response.data : response.data.doctors;
   },
 
   /**
    * Get user appointments
    */
   async getAppointments(): Promise<Appointment[]> {
-    const response = await apiClient.get<{ appointments: Appointment[] }>(
+    const response = await apiClient.get<Appointment[] | { appointments: Appointment[] }>(
       API_ENDPOINTS.APPOINTMENTS
     );
-    return response.data.appointments;
+    // Handle both direct array and wrapped object response
+    return Array.isArray(response.data) ? response.data : response.data.appointments;
   },
 
   /**

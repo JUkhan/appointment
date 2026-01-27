@@ -7,9 +7,10 @@ import {
   IonIcon,
   IonBadge,
 } from '@ionic/react';
-import { personCircleOutline, calendarOutline, personOutline, medkitOutline } from 'ionicons/icons';
+import { personCircleOutline, calendarOutline, personOutline, timeOutline } from 'ionicons/icons';
 import type { Appointment } from '../types';
-import { formatAppointmentDate } from '../utils/dateFormat';
+import { formatAppointmentDate, calculateTimeSlot } from '../utils/dateFormat';
+
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -34,8 +35,8 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment }) => {
             <span>{formatAppointmentDate(appointment.date)}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <IonIcon icon={medkitOutline} style={{ marginRight: '0.5rem', color: 'var(--ion-color-medium)' }} />
-            <span>{appointment.availability}</span>
+            <IonIcon icon={timeOutline} style={{ marginRight: '0.5rem', color: 'var(--ion-color-medium)' }} />
+            <span>{calculateTimeSlot(appointment.availability, appointment.serial_number)}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <IonIcon icon={personOutline} style={{ marginRight: '0.5rem', color: 'var(--ion-color-medium)' }} />

@@ -138,11 +138,9 @@ const VoiceAssistantPage: React.FC = () => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      // Play TTS
+      await playTTS(response.llm_response);
 
-      // Play TTS if audio_id is provided
-      if (response.audio_id) {
-        await playTTS(response.llm_response);
-      }
     } catch (error: any) {
       console.error('Process audio error:', error);
       setToastMessage(error.response?.data?.message || 'Failed to process audio');
@@ -165,6 +163,7 @@ const VoiceAssistantPage: React.FC = () => {
         volume: 1.0,
         category: 'ambient',
       });
+
     } catch (error) {
       console.error('TTS error:', error);
       // Don't show error to user, just log it

@@ -9,14 +9,15 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonToast,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption,
   IonAlert,
   IonCard,
   IonCardContent,
   IonText,
+  IonButton,
+  IonIcon,
+  useIonViewWillEnter,
 } from '@ionic/react';
+import { closeCircleOutline } from 'ionicons/icons';
 import { RefresherEventDetail } from '@ionic/core';
 import apiService from '../services/apiService';
 import AppointmentCard from '../components/AppointmentCard';
@@ -32,9 +33,10 @@ const MyAppointmentsPage: React.FC = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
 
-  useEffect(() => {
+  // Fetch appointments every time the page/tab is viewed
+  useIonViewWillEnter(() => {
     fetchAppointments();
-  }, []);
+  });
 
   const fetchAppointments = async () => {
     try {
@@ -123,17 +125,19 @@ const MyAppointmentsPage: React.FC = () => {
             ) : (
               <IonList>
                 {appointments.map((appointment) => (
-                  <IonItemSliding key={appointment.id}>
+                  <div key={appointment.id} style={{ marginBottom: '1rem' }}>
                     <AppointmentCard appointment={appointment} />
-                    <IonItemOptions side="end">
-                      <IonItemOption
-                        color="danger"
-                        onClick={() => handleCancelClick(appointment.id)}
-                      >
-                        Cancel
-                      </IonItemOption>
-                    </IonItemOptions>
-                  </IonItemSliding>
+                    <IonButton
+                      expand="block"
+                      color="danger"
+                      fill="outline"
+                      onClick={() => handleCancelClick(appointment.id)}
+                      style={{ margin: '0 16px 8px 16px' }}
+                    >
+                      <IonIcon slot="start" icon={closeCircleOutline} />
+                      Cancel Appointment
+                    </IonButton>
+                  </div>
                 ))}
               </IonList>
             )}
