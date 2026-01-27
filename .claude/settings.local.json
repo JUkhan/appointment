@@ -18,7 +18,11 @@
       "Bash(npm uninstall:*)",
       "Bash(curl:*)",
       "Bash(docker exec:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(ionic start:*)",
+      "Bash(npm search:*)",
+      "Bash(npm run build:*)",
+      "Bash(python -c:*)"
     ],
     "deny": [],
     "ask": []
