@@ -17,13 +17,20 @@ import {
   IonText,
 } from '@ionic/react';
 import { micOutline, stopOutline } from 'ionicons/icons';
-import { VoiceRecorder } from 'capacitor-voice-recorder';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import apiService from '../services/apiService';
 import type { Message } from '../types';
 import { stripMarkdown } from '../utils/markdown';
+
+// Extend Window interface for Web Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 const VoiceAssistantPage: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -35,12 +42,18 @@ const VoiceAssistantPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef<HTMLIonContentElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
+  const textCaptured = useRef<boolean>(false);
 
   useEffect(() => {
-    checkPermissions();
+    initializeSpeechRecognition();
     return () => {
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
       }
     };
   }, []);
@@ -52,31 +65,98 @@ const VoiceAssistantPage: React.FC = () => {
     }
   }, [messages]);
 
-  const checkPermissions = async () => {
+  const initializeSpeechRecognition = () => {
     try {
-      const hasPermission = await VoiceRecorder.hasAudioRecordingPermission();
-      if (!hasPermission.value) {
-        const permissionResult = await VoiceRecorder.requestAudioRecordingPermission();
-        if (!permissionResult.value) {
-          setToastMessage('Microphone permission is required for voice recording');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        setToastMessage('Speech recognition is not supported in your browser');
+        setShowToast(true);
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true; // Keep listening until manually stopped
+      recognition.interimResults = true; // Get interim results
+
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setRecordingDuration(0);
+        transcriptRef.current = ''; // Reset transcript
+        // Start duration counter
+        recordingIntervalRef.current = setInterval(() => {
+          setRecordingDuration((prev) => prev + 1);
+        }, 1000);
+      };
+
+      recognition.onresult = (event: any) => {
+        textCaptured.current = false;
+        // Accumulate all final results
+        let finalTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+        if (finalTranscript) {
+          transcriptRef.current = finalTranscript.trim();
+          textCaptured.current = true;
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+
+        // Don't reset on 'no-speech' error in continuous mode
+        if (event.error === 'no-speech') {
+          return; // Keep listening
+        }
+
+        setIsRecording(false);
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+        }
+
+        if (event.error === 'not-allowed') {
+          setToastMessage('Microphone permission is required');
+          setShowToast(true);
+        } else if (event.error !== 'aborted') {
+          setToastMessage('Speech recognition error: ' + event.error);
           setShowToast(true);
         }
-      }
+      };
+
+      recognition.onend = () => {
+        // Only set to false if we're not intentionally recording
+        // This prevents auto-restart when speech pauses
+        if (!isRecording) {
+          if (recordingIntervalRef.current) {
+            clearInterval(recordingIntervalRef.current);
+            recordingIntervalRef.current = null;
+          }
+        }
+      };
+
+      recognitionRef.current = recognition;
     } catch (error) {
-      console.error('Permission check error:', error);
+      console.error('Speech recognition initialization error:', error);
+      setToastMessage('Failed to initialize speech recognition');
+      setShowToast(true);
     }
   };
 
   const startRecording = async () => {
     try {
-      await VoiceRecorder.startRecording();
-      setIsRecording(true);
-      setRecordingDuration(0);
+      if (!recognitionRef.current) {
+        setToastMessage('Speech recognition not available');
+        setShowToast(true);
+        return;
+      }
 
-      // Start duration counter
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
-      }, 1000);
+      // Set language for speech recognition
+      recognitionRef.current.lang = language === 'en' ? 'en-US' : 'bn-BD';
+      recognitionRef.current.start();
     } catch (error: any) {
       console.error('Start recording error:', error);
       setToastMessage('Failed to start recording');
@@ -85,19 +165,28 @@ const VoiceAssistantPage: React.FC = () => {
   };
 
   const stopRecording = async () => {
+    setIsRecording(false);
+    if (!textCaptured.current) {
+      await new Promise(resolve => setTimeout(resolve, 2500));
+    }
     try {
-      const result = await VoiceRecorder.stopRecording();
+      if (recognitionRef.current && isRecording) {
+        recognitionRef.current.stop();
+      }
+
 
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
         recordingIntervalRef.current = null;
       }
 
-      setIsRecording(false);
-      setRecordingDuration(0);
-
-      if (result.value?.recordDataBase64) {
-        await processAudio(result.value.recordDataBase64);
+      // Process the accumulated transcript
+      const text = transcriptRef.current.trim();
+      if (text) {
+        await processText(text);
+      } else {
+        setToastMessage('No speech detected. Please try again.');
+        setShowToast(true);
       }
     } catch (error: any) {
       console.error('Stop recording error:', error);
@@ -106,29 +195,20 @@ const VoiceAssistantPage: React.FC = () => {
     }
   };
 
-  const processAudio = async (base64Audio: string) => {
+  const processText = async (text: string) => {
     setIsProcessing(true);
     try {
-      // Convert base64 to blob
-      const byteCharacters = atob(base64Audio);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const audioBlob = new Blob([byteArray], { type: 'audio/webm' });
-
-      // Send to backend
-      const response = await apiService.processAudio(audioBlob, language);
-
       // Add user message
       const userMessage: Message = {
         id: Date.now().toString(),
         type: 'user',
-        text: response.user_text,
+        text: text,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, userMessage]);
+
+      // Send text to backend
+      const response = await apiService.processText(text, language);
 
       // Add assistant message
       const assistantMessage: Message = {
@@ -138,12 +218,12 @@ const VoiceAssistantPage: React.FC = () => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
       // Play TTS
       await playTTS(response.llm_response);
-
     } catch (error: any) {
-      console.error('Process audio error:', error);
-      setToastMessage(error.response?.data?.message || 'Failed to process audio');
+      console.error('Process text error:', error);
+      setToastMessage(error.response?.data?.message || 'Failed to process text');
       setShowToast(true);
     } finally {
       setIsProcessing(false);
@@ -206,8 +286,12 @@ const VoiceAssistantPage: React.FC = () => {
           <div style={{ textAlign: 'center', marginTop: '2rem' }}>
             <IonText color="medium">
               <h3>Welcome to Voice Assistant</h3>
-              <p>Press the microphone button to start recording</p>
-              <p>Ask about doctors, appointments, or medical queries</p>
+              <p>1. Press the microphone button to start</p>
+              <p>2. Speak your question</p>
+              <p>3. Press the stop button when done</p>
+              <p style={{ fontSize: '0.875rem', marginTop: '1rem', color: 'var(--ion-color-primary)' }}>
+                Ask about doctors, appointments, or medical queries
+              </p>
             </IonText>
           </div>
         ) : (
@@ -257,7 +341,7 @@ const VoiceAssistantPage: React.FC = () => {
         {isProcessing && (
           <div style={{ textAlign: 'center', margin: '1rem' }}>
             <IonText color="medium">
-              <p>Processing audio...</p>
+              <p>Getting AI response...</p>
             </IonText>
           </div>
         )}
@@ -281,13 +365,20 @@ const VoiceAssistantPage: React.FC = () => {
               transform: 'translateX(-50%)',
               textAlign: 'center',
               zIndex: 1000,
+              maxWidth: '90%',
             }}
           >
             <IonCard>
               <IonCardContent>
                 <IonText color="danger">
-                  <h3>Recording...</h3>
-                  <p>{formatDuration(recordingDuration)}</p>
+                  <h3>🎤 Listening...</h3>
+                  <p style={{ margin: '0.5rem 0' }}>Speak your question</p>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--ion-color-medium)' }}>
+                    Click stop when you're done
+                  </p>
+                  <p style={{ fontSize: '1rem', fontWeight: 'bold', marginTop: '0.5rem' }}>
+                    {formatDuration(recordingDuration)}
+                  </p>
                 </IonText>
               </IonCardContent>
             </IonCard>

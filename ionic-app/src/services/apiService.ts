@@ -213,7 +213,7 @@ export const apiService = {
    */
   async processText(text: string, language: string): Promise<ProcessTextResponse> {
     const response = await apiClient.post<ProcessTextResponse>(API_ENDPOINTS.PROCESS_TEXT, {
-      text,
+      'user-text': text,
       language,
     });
     return response.data;
