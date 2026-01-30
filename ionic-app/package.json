@@ -32,7 +32,8 @@
     "react-markdown": "^10.1.0",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "web-vitals": "^5.0.0"
   },
   "devDependencies": {
     "@capacitor/cli": "8.0.2",

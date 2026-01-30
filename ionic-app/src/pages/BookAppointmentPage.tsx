@@ -12,7 +12,6 @@ import {
   IonModal,
   IonDatetime,
   IonItem,
-  IonLabel,
   IonInput,
   IonCard,
   IonCardContent,
@@ -226,8 +225,11 @@ const BookAppointmentPage: React.FC = () => {
                     </IonButton>
 
                     <IonItem>
-                      <IonLabel position="floating">Patient Name *</IonLabel>
                       <IonInput
+                        type="text"
+                        label="Patient Name"
+                        labelPlacement="floating"
+                        placeholder="Enter Patient Name *"
                         value={patientName}
                         onIonInput={(e) => setPatientName(e.detail.value || '')}
                         disabled={isBooking}
@@ -236,9 +238,11 @@ const BookAppointmentPage: React.FC = () => {
                     </IonItem>
 
                     <IonItem>
-                      <IonLabel position="floating">Patient Age *</IonLabel>
                       <IonInput
                         type="number"
+                        label="Patient Age"
+                        labelPlacement="floating"
+                        placeholder="Enter Patient Age *"
                         value={patientAge}
                         onIonInput={(e) => setPatientAge(e.detail.value || '')}
                         disabled={isBooking}

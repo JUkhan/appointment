@@ -5,19 +5,15 @@ import {
   IonCard,
   IonCardContent,
   IonItem,
-  IonLabel,
   IonInput,
   IonButton,
   IonToast,
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonText,
-  IonToggle,
-  IonSelect,
-  IonSelectOption,
+  IonText
 } from '@ionic/react';
-import { useHistory } from 'react-router-dom';
+
 import apiService from '../services/apiService';
 import storageService from '../services/storageService';
 import { CLIENT_ID } from '../constants/api';
@@ -27,13 +23,11 @@ const CreateClientPage: React.FC = () => {
   const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [isActive, setIsActive] = useState(true);
-  const [modules, setModules] = useState('basic');
   const [isLoading, setIsLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('danger');
-  const history = useHistory();
+
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -102,9 +96,7 @@ const CreateClientPage: React.FC = () => {
         business_name: businessName,
         address,
         email,
-        mobile,
-        is_active: isActive,
-        modules,
+        mobile
       });
 
       // Store client ID
@@ -149,71 +141,55 @@ const CreateClientPage: React.FC = () => {
               </div>
 
               <IonItem>
-                <IonLabel position="floating">Business Name *</IonLabel>
                 <IonInput
                   type="text"
+                  placeholder="Enter Business Name *"
+                  label="Business Name"
+                  labelPlacement="floating"
                   value={businessName}
                   onIonInput={(e) => setBusinessName(e.detail.value || '')}
                   disabled={isLoading}
-                  placeholder="Enter your business name"
                 />
               </IonItem>
 
               <IonItem>
-                <IonLabel position="floating">Address *</IonLabel>
                 <IonInput
                   type="text"
+                  placeholder="Enter Address *"
+                  label="Address"
+                  labelPlacement="floating"
                   value={address}
                   onIonInput={(e) => setAddress(e.detail.value || '')}
                   disabled={isLoading}
-                  placeholder="Enter your business address"
                 />
               </IonItem>
 
               <IonItem>
-                <IonLabel position="floating">Email *</IonLabel>
                 <IonInput
                   type="email"
+                  labelPlacement="floating"
+                  placeholder="Enter Email *"
+                  label="Email"
                   value={email}
                   onIonInput={(e) => setEmail(e.detail.value || '')}
                   disabled={isLoading}
-                  placeholder="contact@example.com"
                 />
               </IonItem>
 
               <IonItem>
-                <IonLabel position="floating">Mobile Number *</IonLabel>
                 <IonInput
                   type="tel"
+                  labelPlacement="floating"
+                  placeholder="Enter Mobile Number *"
+                  label="Mobile Number"
                   value={mobile}
                   onIonInput={(e) => setMobile(e.detail.value || '')}
                   disabled={isLoading}
-                  placeholder="1234567890"
                   maxlength={15}
                 />
               </IonItem>
 
-              <IonItem>
-                <IonLabel>Active Status</IonLabel>
-                <IonToggle
-                  checked={isActive}
-                  onIonChange={(e) => setIsActive(e.detail.checked)}
-                  disabled={isLoading}
-                />
-              </IonItem>
 
-              <IonItem>
-                <IonLabel>Modules</IonLabel>
-                <IonSelect
-                  value={modules}
-                  onIonChange={(e) => setModules(e.detail.value)}
-                  disabled={isLoading}
-                >
-                  <IonSelectOption value="basic">Basic</IonSelectOption>
-                  <IonSelectOption value="premium">Premium</IonSelectOption>
-                  <IonSelectOption value="enterprise">Enterprise</IonSelectOption>
-                </IonSelect>
-              </IonItem>
 
               <IonButton
                 expand="block"
