@@ -5,7 +5,6 @@ import {
   IonCard,
   IonCardContent,
   IonItem,
-  IonLabel,
   IonInput,
   IonButton,
   IonToast,
@@ -70,9 +69,11 @@ const LoginPage: React.FC = () => {
               </div>
 
               <IonItem>
-                <IonLabel position="floating">Username</IonLabel>
                 <IonInput
                   type="text"
+                  label="Username"
+                  labelPlacement="floating"
+                  placeholder="Enter Username *"
                   value={username}
                   onIonInput={(e) => setUsername(e.detail.value || '')}
                   disabled={isLoading}
@@ -80,9 +81,11 @@ const LoginPage: React.FC = () => {
               </IonItem>
 
               <IonItem>
-                <IonLabel position="floating">Password</IonLabel>
                 <IonInput
                   type="password"
+                  label="Password"
+                  labelPlacement="floating"
+                  placeholder="Enter Password *"
                   value={password}
                   onIonInput={(e) => setPassword(e.detail.value || '')}
                   disabled={isLoading}
