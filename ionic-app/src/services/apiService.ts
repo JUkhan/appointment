@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL, API_ENDPOINTS, REQUEST_TIMEOUT, TOKEN_KEYS } from '../constants/api';
 import storageService from './storageService';
+import { extractRole } from '../utils/jwtUtils';
 import type {
   LoginData,
   RegisterData,
@@ -18,6 +19,16 @@ import type {
 // Flag to prevent multiple concurrent refresh requests
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
+
+// Callback for role change notification
+let roleChangeNotifier: (() => void) | null = null;
+
+/**
+ * Set callback to notify when role changes after token refresh
+ */
+export const setRoleChangeNotifier = (callback: (() => void) | null) => {
+  roleChangeNotifier = callback;
+};
 
 // Subscribe to token refresh
 const subscribeTokenRefresh = (cb: (token: string) => void) => {
@@ -91,6 +102,10 @@ apiClient.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
+        // Get old role before refresh
+        const oldToken = await storageService.getItem(TOKEN_KEYS.ACCESS_TOKEN);
+        const oldRole = oldToken ? extractRole(oldToken) : null;
+
         // Refresh the token
         const response = await axios.post<RefreshResponse>(
           `${API_BASE_URL}${API_ENDPOINTS.REFRESH}`,
@@ -104,6 +119,14 @@ apiClient.interceptors.response.use(
 
         const { access_token } = response.data;
         await storageService.setItem(TOKEN_KEYS.ACCESS_TOKEN, access_token);
+
+        // Check if role changed
+        const newRole = extractRole(access_token);
+        if (oldRole !== newRole && roleChangeNotifier) {
+          console.log('Role changed after token refresh:', { oldRole, newRole });
+          // Notify AuthContext to refresh role
+          roleChangeNotifier();
+        }
 
         // Notify all waiting requests
         onTokenRefreshed(access_token);

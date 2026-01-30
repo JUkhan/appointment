@@ -1,17 +1,22 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import apiService from '../services/apiService';
 import storageService from '../services/storageService';
 import { TOKEN_KEYS, CLIENT_ID } from '../constants/api';
-import type { LoginData, RegisterData } from '../types';
+import { extractRole } from '../utils/jwtUtils';
+import type { LoginData, RegisterData, UserRole, RoleChangeCallback, RoleChangeEvent } from '../types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   userId: string | null;
+  userRole: UserRole | null;
   login: (data: LoginData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
+  hasRole: (role: UserRole | UserRole[]) => boolean;
+  onRoleChange: (callback: RoleChangeCallback) => () => void;
+  refreshRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +29,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [roleChangeCallbacks, setRoleChangeCallbacks] = useState<RoleChangeCallback[]>([]);
   const history = useHistory();
 
   // Check authentication status on mount
@@ -39,14 +46,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (accessToken && storedUserId) {
         setIsAuthenticated(true);
         setUserId(storedUserId);
+
+        // Extract and set role from access token
+        const role = extractRole(accessToken);
+        setUserRole(role);
       } else {
         setIsAuthenticated(false);
         setUserId(null);
+        setUserRole(null);
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
       setIsAuthenticated(false);
       setUserId(null);
+      setUserRole(null);
     } finally {
       setIsLoading(false);
     }
@@ -64,8 +77,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         [TOKEN_KEYS.USER_ID, response.user_id.toString()],
       ]);
 
+      // Extract and set role from access token
+      const role = extractRole(response.access_token);
+
       setIsAuthenticated(true);
       setUserId(response.user_id.toString());
+      setUserRole(role);
 
       // Navigate to main app
       history.push('/tabs/book');
@@ -98,6 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setIsAuthenticated(false);
       setUserId(null);
+      setUserRole(null);
 
       // Navigate to login
       history.push('/login');
@@ -106,13 +124,87 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  /**
+   * Check if user has specific role(s)
+   */
+  const hasRole = useCallback((role: UserRole | UserRole[]): boolean => {
+    if (!userRole) return false;
+
+    if (Array.isArray(role)) {
+      return role.includes(userRole);
+    }
+
+    return userRole === role;
+  }, [userRole]);
+
+  /**
+   * Subscribe to role change events
+   * Returns unsubscribe function
+   */
+  const onRoleChange = useCallback((callback: RoleChangeCallback): (() => void) => {
+    setRoleChangeCallbacks(prev => [...prev, callback]);
+
+    // Return unsubscribe function
+    return () => {
+      setRoleChangeCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
+  }, []);
+
+  /**
+   * Notify all subscribers of role change
+   */
+  const notifyRoleChange = useCallback((oldRole: string | null, newRole: string | null) => {
+    const event: RoleChangeEvent = {
+      oldRole,
+      newRole,
+      timestamp: new Date(),
+    };
+
+    roleChangeCallbacks.forEach(callback => {
+      try {
+        callback(event);
+      } catch (error) {
+        console.error('Error in role change callback:', error);
+      }
+    });
+  }, [roleChangeCallbacks]);
+
+  /**
+   * Refresh role from current access token
+   * Call this after token refresh to detect role changes
+   */
+  const refreshRole = useCallback(async () => {
+    try {
+      const accessToken = await storageService.getItem(TOKEN_KEYS.ACCESS_TOKEN);
+      if (!accessToken) {
+        setUserRole(null);
+        return;
+      }
+
+      const oldRole = userRole;
+      const newRole = extractRole(accessToken);
+
+      if (oldRole !== newRole) {
+        setUserRole(newRole);
+        notifyRoleChange(oldRole, newRole);
+        console.log('Role changed:', { oldRole, newRole });
+      }
+    } catch (error) {
+      console.error('Error refreshing role:', error);
+    }
+  }, [userRole, notifyRoleChange]);
+
   const value: AuthContextType = {
     isAuthenticated,
     isLoading,
     userId,
+    userRole,
     login,
     register,
     logout,
+    hasRole,
+    onRoleChange,
+    refreshRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

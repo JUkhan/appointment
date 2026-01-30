@@ -95,3 +95,14 @@ export interface CreateClientResponse {
   message: string;
   client: Client;
 }
+
+// Role-based authorization types
+export type UserRole = string; // Can be 'admin', 'doctor', 'patient', 'receptionist', etc.
+
+export interface RoleChangeEvent {
+  oldRole: string | null;
+  newRole: string | null;
+  timestamp: Date;
+}
+
+export type RoleChangeCallback = (event: RoleChangeEvent) => void;

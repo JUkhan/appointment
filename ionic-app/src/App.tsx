@@ -37,7 +37,7 @@ import '@ionic/react/css/palettes/dark.system.css';
 import './theme/variables.css';
 
 /* Context */
-import { AuthProvider } from './context/AuthContext';
+import { AuthProviderWithRoleSync } from './components/AuthProviderWithRoleSync';
 
 /* Components */
 import ProtectedRoute from './components/ProtectedRoute';
@@ -109,7 +109,7 @@ const App: React.FC = () => {
   return (
     <IonApp>
       <IonReactRouter>
-        <AuthProvider>
+        <AuthProviderWithRoleSync>
           <IonRouterOutlet>
             {/* Public Routes */}
             <Route exact path="/login">
@@ -161,7 +161,7 @@ const App: React.FC = () => {
               <Redirect to="/login" />
             </Route>
           </IonRouterOutlet>
-        </AuthProvider>
+        </AuthProviderWithRoleSync>
       </IonReactRouter>
     </IonApp>
   );
