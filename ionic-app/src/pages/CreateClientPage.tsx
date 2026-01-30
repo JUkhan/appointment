@@ -17,6 +17,7 @@ import {
 import apiService from '../services/apiService';
 import storageService from '../services/storageService';
 import { CLIENT_ID } from '../constants/api';
+import { useHistory } from 'react-router-dom';
 
 const CreateClientPage: React.FC = () => {
   const [businessName, setBusinessName] = useState('');
@@ -27,7 +28,7 @@ const CreateClientPage: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('danger');
-
+  const history = useHistory();
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -119,6 +120,11 @@ const CreateClientPage: React.FC = () => {
     }
   };
 
+  const moveToApiKeySetup = () => {
+    history.push('/system-settings');
+  }
+
+
   return (
     <IonPage>
       <IonHeader>
@@ -198,6 +204,14 @@ const CreateClientPage: React.FC = () => {
                 style={{ marginTop: '1.5rem' }}
               >
                 {isLoading ? 'Creating...' : 'Create Organization'}
+              </IonButton>
+
+              <IonButton
+                expand="block"
+                onClick={moveToApiKeySetup}
+                style={{ marginTop: '1.5rem' }}
+              >
+                Setup API Key
               </IonButton>
 
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>

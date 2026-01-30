@@ -13,7 +13,6 @@ import {
   IonListHeader,
   IonNote,
   IonBadge,
-  IonButton,
 } from '@ionic/react';
 import {
   personAddOutline,
@@ -27,6 +26,7 @@ import {
   settingsOutline,
   statsChartOutline,
   medkitOutline,
+  keyOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -150,7 +150,7 @@ const SidebarMenu: React.FC = () => {
             </IonMenuToggle>
 
             <IonMenuToggle>
-              <IonItem button>
+              <IonItem button onClick={() => history.push('/manage-users')}>
                 <IonIcon icon={peopleOutline} slot="start" />
                 <IonLabel>Manage Users</IonLabel>
               </IonItem>
@@ -164,7 +164,7 @@ const SidebarMenu: React.FC = () => {
             </IonMenuToggle>
 
             <IonMenuToggle>
-              <IonItem button>
+              <IonItem button onClick={() => history.push('/system-settings')}>
                 <IonIcon icon={settingsOutline} slot="start" />
                 <IonLabel>System Settings</IonLabel>
               </IonItem>
@@ -209,7 +209,14 @@ const SidebarMenu: React.FC = () => {
           </IonMenuToggle>
 
           <IonMenuToggle>
-            <IonItem button>
+            <IonItem button onClick={() => history.push('/update-password')}>
+              <IonIcon icon={keyOutline} slot="start" />
+              <IonLabel>Change Password</IonLabel>
+            </IonItem>
+          </IonMenuToggle>
+
+          <IonMenuToggle>
+            <IonItem button onClick={() => history.push('/settings')}>
               <IonIcon icon={settingsOutline} slot="start" />
               <IonLabel>Settings</IonLabel>
             </IonItem>

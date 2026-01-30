@@ -14,6 +14,9 @@ import type {
   ProcessTextResponse,
   CreateClientData,
   CreateClientResponse,
+  GetClientUsersResponse,
+  UpdateDataUserRequest,
+  UpdateDataUserResponse,
 } from '../types';
 
 // Flag to prevent multiple concurrent refresh requests
@@ -180,6 +183,27 @@ export const apiService = {
    */
   async createClient(data: CreateClientData): Promise<CreateClientResponse> {
     const response = await apiClient.post<CreateClientResponse>(API_ENDPOINTS.CREATE_CLIENT, data);
+    return response.data;
+  },
+
+  /**
+   * Get all users for a specific client
+   */
+  async getClientUsers(clientId: string): Promise<GetClientUsersResponse> {
+    const response = await apiClient.get<GetClientUsersResponse>(
+      API_ENDPOINTS.GET_CLIENT_USERS(clientId)
+    );
+    return response.data;
+  },
+
+  /**
+   * Update a data user
+   */
+  async updateDataUser(userId: string, data: UpdateDataUserRequest): Promise<UpdateDataUserResponse> {
+    const response = await apiClient.put<UpdateDataUserResponse>(
+      API_ENDPOINTS.UPDATE_DATA_USER(userId),
+      data
+    );
     return response.data;
   },
 

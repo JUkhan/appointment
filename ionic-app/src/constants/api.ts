@@ -37,6 +37,10 @@ export const API_ENDPOINTS = {
 
   // Client (Organization)
   CREATE_CLIENT: '/api/clients',
+  GET_CLIENT_USERS: (clientId: string) => `/api/clients/${clientId}/users`,
+
+  // Data Users
+  UPDATE_DATA_USER: (userId: string) => `/api/data-users/${userId}`,
 
   // Doctors
   DOCTORS: '/doctors',

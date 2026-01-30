@@ -16,6 +16,7 @@ import {
   IonButtons,
 } from '@ionic/react';
 import { useAuth } from '../context/AuthContext';
+import { useHistory } from 'react-router-dom';
 import { validateUsername, validatePassword, validatePasswordMatch } from '../utils/validation';
 
 const RegisterPage: React.FC = () => {
@@ -27,6 +28,7 @@ const RegisterPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('danger');
   const { register } = useAuth();
+  const history = useHistory();
 
   const handleRegister = async () => {
     // Validation
@@ -66,6 +68,7 @@ const RegisterPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
 
   return (
     <IonPage>
@@ -132,6 +135,8 @@ const RegisterPage: React.FC = () => {
               >
                 {isLoading ? 'Creating Account...' : 'Register'}
               </IonButton>
+
+
 
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <IonText color="medium">

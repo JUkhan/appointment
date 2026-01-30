@@ -192,6 +192,36 @@ def delete_client(client_id):
 
 # ==================== DATA USER ROUTES ====================
 
+@app.route('/api/clients/<client_id>/users', methods=['GET'])
+@jwt_required()
+def get_users_by_client(client_id):
+    """Get all users for a specific client"""
+    try:
+        # Verify client exists
+        client = Client.query.get(client_id)
+        if not client:
+            return jsonify({'error': 'Client not found'}), 404
+
+        # Get all users for this client
+        users = client.users # DataUser.query.filter_by(client_id=client_id).all()
+
+        return jsonify({
+            'client_id': client_id,
+            'client_name': client.business_name,
+            'users': [{
+                'id': user.id,
+                'username': user.username,
+                'role': user.role,
+                'is_active': user.is_active,
+                'created_at': user.created_at.isoformat()
+            } for user in users],
+            'total_users': len(users)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/data-users', methods=['POST'])
 @jwt_required()
 def create_data_user():
@@ -318,18 +348,22 @@ def update_data_user(user_id):
                 return jsonify({'error': 'Username already exists for this client'}), 409
             user.username = data['username']
 
-        if 'password' in data:
-            user.set_password(data['password'])
+        if 'old_password' in data:
+            if not user.check_password(data['old_password']):
+                return jsonify({'error': 'You are unauthorized to update the password'}), 500
 
+            if 'new_password' in data:
+                user.set_password(data['new_password'])
+                
         if 'is_active' in data:
             user.is_active = data['is_active']
 
-        if 'client_id' in data:
-            # Verify new client exists
-            client = Client.query.get(data['client_id'])
-            if not client:
-                return jsonify({'error': 'Client not found'}), 404
-            user.client_id = data['client_id']
+        # if 'client_id' in data:
+        #     # Verify new client exists
+        #     client = Client.query.get(data['client_id'])
+        #     if not client:
+        #         return jsonify({'error': 'Client not found'}), 404
+        #     user.client_id = data['client_id']
 
         db.session.commit()
 

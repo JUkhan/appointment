@@ -96,6 +96,34 @@ export interface CreateClientResponse {
   client: Client;
 }
 
+// Data Center User types
+export interface DataUser {
+  id: string;
+  username: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface GetClientUsersResponse {
+  client_id: string;
+  client_name: string;
+  users: DataUser[];
+  total_users: number;
+}
+
+export interface UpdateDataUserRequest {
+  username?: string;
+  is_active?: boolean;
+  new_password?: string;
+  old_password?: string;
+}
+
+export interface UpdateDataUserResponse {
+  message: string;
+  user: DataUser;
+}
+
 // Role-based authorization types
 export type UserRole = string; // Can be 'admin', 'doctor', 'patient', 'receptionist', etc.
 

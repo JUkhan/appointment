@@ -41,6 +41,7 @@ import { AuthProviderWithRoleSync } from './components/AuthProviderWithRoleSync'
 
 /* Components */
 import ProtectedRoute from './components/ProtectedRoute';
+import RoleProtectedRoute from './components/RoleProtectedRoute';
 import SidebarMenu from './components/SidebarMenu';
 
 /* Pages */
@@ -50,6 +51,10 @@ import RegisterPage from './pages/RegisterPage';
 import BookAppointmentPage from './pages/BookAppointmentPage';
 import MyAppointmentsPage from './pages/MyAppointmentsPage';
 import VoiceAssistantPage from './pages/VoiceAssistantPage';
+import ManageUsersPage from './pages/ManageUsersPage';
+import UpdatePasswordPage from './pages/UpdatePasswordPage';
+import SettingsPage from './pages/SettingsPage';
+import SystemSettingsPage from './pages/SystemSettingsPage';
 
 /* Services & Constants */
 import storageService from './services/storageService';
@@ -110,6 +115,7 @@ const App: React.FC = () => {
   return (
     <IonApp>
       <IonReactRouter>
+
         <AuthProviderWithRoleSync>
           {/* Sidebar Menu */}
           <SidebarMenu />
@@ -122,6 +128,32 @@ const App: React.FC = () => {
             <Route exact path="/register">
               <RegisterPage />
             </Route>
+
+            <Route exact path="/system-settings">
+              <SystemSettingsPage />
+            </Route>
+
+            {/* Admin-Only Routes */}
+            <RoleProtectedRoute
+              exact
+              path="/manage-users"
+              allowedRoles="admin"
+              component={ManageUsersPage}
+              redirectTo="/tabs/book"
+            />
+
+
+            {/* Protected Routes (All Authenticated Users) */}
+            <ProtectedRoute
+              exact
+              path="/update-password"
+              component={UpdatePasswordPage}
+            />
+            <ProtectedRoute
+              exact
+              path="/settings"
+              component={SettingsPage}
+            />
 
             {/* Protected Routes with Tabs */}
             <Route path="/tabs">
