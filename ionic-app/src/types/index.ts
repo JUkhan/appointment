@@ -68,3 +68,28 @@ export interface ApiError {
   message: string;
   status?: number;
 }
+
+export interface CreateClientData {
+  business_name: string;
+  address: string;
+  email: string;
+  mobile: string;
+  is_active?: boolean;
+  modules?: string;
+}
+
+export interface Client {
+  id: string;
+  business_name: string;
+  address: string;
+  email: string;
+  mobile: string;
+  is_active: boolean;
+  modules: string;
+  created_at: string;
+}
+
+export interface CreateClientResponse {
+  message: string;
+  client: Client;
+}

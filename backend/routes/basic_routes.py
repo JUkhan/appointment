@@ -1,6 +1,6 @@
 from flask import request, jsonify, send_file
 
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, create_refresh_token, get_jwt_identity, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 import speech_recognition as sr
 
@@ -222,7 +222,7 @@ def process_text():
         user_text = data.get('user-text')
         user_id_str = get_jwt_identity()
         print('user text:', user_text)
-        llm_response = run_chatbot(user_text, user_id_str)
+        llm_response = user_text#run_chatbot(user_text, user_id_str)
         return jsonify({
             'user_text': user_text,
             'llm_response': llm_response,

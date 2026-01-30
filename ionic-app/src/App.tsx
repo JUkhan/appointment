@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Redirect, Route } from 'react-router-dom';
 import {
   IonApp,
@@ -8,6 +8,7 @@ import {
   IonTabButton,
   IonIcon,
   IonLabel,
+  IonSpinner,
   setupIonicReact,
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
@@ -42,15 +43,69 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 /* Pages */
+import CreateClientPage from './pages/CreateClientPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BookAppointmentPage from './pages/BookAppointmentPage';
 import MyAppointmentsPage from './pages/MyAppointmentsPage';
 import VoiceAssistantPage from './pages/VoiceAssistantPage';
 
+/* Services & Constants */
+import storageService from './services/storageService';
+import { CLIENT_ID } from './constants/api';
+
 setupIonicReact();
 
 const App: React.FC = () => {
+  const [hasClientId, setHasClientId] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check if CLIENT_ID exists in storage
+    const checkClientId = async () => {
+      try {
+        const clientId = await storageService.getItem(CLIENT_ID);
+        setHasClientId(!!clientId);
+      } catch (error) {
+        console.error('Error checking CLIENT_ID:', error);
+        setHasClientId(false);
+      }
+    };
+
+    checkClientId();
+  }, []);
+
+  // Show loading spinner while checking CLIENT_ID
+  if (hasClientId === null) {
+    return (
+      <IonApp>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh'
+        }}>
+          <IonSpinner name="crescent" />
+        </div>
+      </IonApp>
+    );
+  }
+
+  // If no CLIENT_ID, show CreateClientPage
+  if (!hasClientId) {
+    return (
+      <IonApp>
+        <IonReactRouter>
+          <IonRouterOutlet>
+            <Route path="/">
+              <CreateClientPage />
+            </Route>
+          </IonRouterOutlet>
+        </IonReactRouter>
+      </IonApp>
+    );
+  }
+
+  // If CLIENT_ID exists, show normal flow
   return (
     <IonApp>
       <IonReactRouter>

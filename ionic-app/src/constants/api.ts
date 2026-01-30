@@ -35,6 +35,9 @@ export const API_ENDPOINTS = {
   REGISTER: '/register',
   REFRESH: '/refresh',
 
+  // Client (Organization)
+  CREATE_CLIENT: '/api/clients',
+
   // Doctors
   DOCTORS: '/doctors',
 
@@ -52,7 +55,7 @@ export const API_ENDPOINTS = {
 
 // Request timeout
 export const REQUEST_TIMEOUT = 30000; // 30 seconds
-
+export const CLIENT_ID = 'client_id';
 // Token storage keys
 export const TOKEN_KEYS = {
   ACCESS_TOKEN: 'access_token',

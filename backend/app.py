@@ -29,6 +29,7 @@ db.init_app(app)
 
 from routes.auth_routes import *
 from routes.basic_routes import *
+from routes.data_center import *
 
 init_db()
 cleanup_thread = threading.Thread(target=cleanup_old_threads, daemon=True)

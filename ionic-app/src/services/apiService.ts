@@ -11,6 +11,8 @@ import type {
   CreateAppointmentData,
   ProcessAudioResponse,
   ProcessTextResponse,
+  CreateClientData,
+  CreateClientResponse,
 } from '../types';
 
 // Flag to prevent multiple concurrent refresh requests
@@ -147,6 +149,14 @@ export const apiService = {
    */
   async register(data: RegisterData): Promise<{ message: string }> {
     const response = await apiClient.post<{ message: string }>(API_ENDPOINTS.REGISTER, data);
+    return response.data;
+  },
+
+  /**
+   * Create new client (organization)
+   */
+  async createClient(data: CreateClientData): Promise<CreateClientResponse> {
+    const response = await apiClient.post<CreateClientResponse>(API_ENDPOINTS.CREATE_CLIENT, data);
     return response.data;
   },
 
