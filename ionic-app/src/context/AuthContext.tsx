@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useHistory } from 'react-router-dom';
 import apiService from '../services/apiService';
 import storageService from '../services/storageService';
-import { TOKEN_KEYS } from '../constants/api';
+import { TOKEN_KEYS, CLIENT_ID } from '../constants/api';
 import type { LoginData, RegisterData } from '../types';
 
 interface AuthContextType {
@@ -54,6 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (data: LoginData) => {
     try {
+      data.client_id = await storageService.getItem(CLIENT_ID) || undefined;
       const response = await apiService.login(data);
 
       // Store tokens and user ID
@@ -76,6 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (data: RegisterData) => {
     try {
+      data.client_id = await storageService.getItem(CLIENT_ID) || undefined;
       await apiService.register(data);
       // Registration successful, redirect to login
       history.push('/login');

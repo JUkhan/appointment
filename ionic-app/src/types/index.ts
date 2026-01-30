@@ -21,12 +21,14 @@ export interface Appointment {
 export interface LoginData {
   username: string;
   password: string;
+  client_id?: string;
 }
 
 export interface RegisterData {
   username: string;
   password: string;
   confirm_password: string;
+  client_id?: string;
 }
 
 export interface LoginResponse {

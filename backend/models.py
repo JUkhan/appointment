@@ -21,6 +21,7 @@ class DataUser(db.Model):
     id = db.Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     username = db.Column(db.String(80), nullable=False)
     password_hash = db.Column(db.String(120), nullable=False)
+    role = db.Column(db.String(6), nullable=False)
     is_active = db.Column(db.Boolean, default=False, nullable=False)
     client_id = db.Column(String(36), db.ForeignKey('client.id'))
     created_at = db.Column(db.DateTime, default=db.func.now())

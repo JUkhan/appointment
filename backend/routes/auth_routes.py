@@ -2,7 +2,7 @@ from flask import request, jsonify
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 from flask_app import app
 from db import db
-from models import User
+from models import  DataUser
 
 jwt = JWTManager(app)
 
@@ -29,14 +29,15 @@ def register():
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
+        client_id=data.get('client_id')
         
         if not username or not password:
             return jsonify({'error': 'Username and password are required'}), 400
         
-        if User.query.filter_by(username=username).first():
+        if DataUser.query.filter_by(username=username, client_id=client_id).first():
             return jsonify({'error': 'Username already exists'}), 400
         
-        user = User(username=username)
+        user = DataUser(username=username, client_id=client_id, role='user', is_active=True)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
@@ -51,16 +52,18 @@ def login():
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
+        client_id=data.get('client_id')
         
         if not username or not password:
             return jsonify({'error': 'Username and password are required'}), 400
         
-        user = User.query.filter_by(username=username).first()
+        user = DataUser.query.filter_by(username=username, client_id=client_id).first()
 
-        if user and user.check_password(password):
+        if user and user.check_password(password) and user.is_active:
             # Create both access and refresh tokens
-            access_token = create_access_token(identity=str(user.id), fresh=True)
-            refresh_token = create_refresh_token(identity=str(user.id))
+            claims={'role':user.role, 'is_active':user.is_active}
+            access_token = create_access_token(identity=str(user.id), fresh=True, additional_claims=claims)
+            refresh_token = create_refresh_token(identity=str(user.id), additional_claims=claims)
 
             print(f"Created tokens for user {user.id}")
 
@@ -83,7 +86,12 @@ def refresh():
     """
     try:
         current_user = get_jwt_identity()
-        new_access_token = create_access_token(identity=current_user, fresh=False)
+        print('::::refresh:::::',current_user)
+        user = DataUser.query.filter_by(id=current_user).first()
+        if not user.is_active:
+            return jsonify({'error': str(e)}), 500
+        claims={'role':user.role, 'is_active':user.is_active}
+        new_access_token = create_access_token(identity=current_user, fresh=False, additional_claims=claims)
 
         return jsonify({
             'access_token': new_access_token

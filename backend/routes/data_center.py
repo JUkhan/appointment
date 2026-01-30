@@ -28,6 +28,7 @@ def create_client():
 
         # Create new client
         client = Client(
+            id = str(uuid.uuid4()),
             business_name=data['business_name'],
             address=data['address'],
             email=data['email'],
@@ -35,8 +36,15 @@ def create_client():
             is_active=data.get('is_active', True),
             modules=data.get('modules', 'basic')
         )
-
+        data_user = DataUser(
+            username='admin',
+            client_id=client.id,
+            is_active=True,
+            role='admin'
+        )
+        data_user.set_password('admin123')
         db.session.add(client)
+        db.session.add(data_user)
         db.session.commit()
 
         return jsonify({
