@@ -16,6 +16,8 @@ import {
   IonCard,
   IonCardContent,
   IonText,
+  IonButtons,
+  IonMenuButton,
 } from '@ionic/react';
 import apiService from '../services/apiService';
 import DoctorCard from '../components/DoctorCard';
@@ -162,6 +164,9 @@ const BookAppointmentPage: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonMenuButton />
+          </IonButtons>
           <IonTitle>Book Appointment</IonTitle>
         </IonToolbar>
       </IonHeader>

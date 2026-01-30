@@ -15,6 +15,8 @@ import {
   IonLabel,
   IonToast,
   IonText,
+  IonButtons,
+  IonMenuButton,
 } from '@ionic/react';
 import { micOutline, stopOutline } from 'ionicons/icons';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
@@ -268,6 +270,9 @@ const VoiceAssistantPage: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonMenuButton />
+          </IonButtons>
           <IonTitle>Voice Assistant</IonTitle>
         </IonToolbar>
         <IonToolbar>

@@ -117,8 +117,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserId(null);
       setUserRole(null);
 
-      // Navigate to login
-      history.push('/login');
+      // Use window.location to do a full page reload and avoid React update loop
+      // This ensures a clean state after logout
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
     }

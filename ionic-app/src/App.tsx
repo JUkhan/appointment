@@ -41,6 +41,7 @@ import { AuthProviderWithRoleSync } from './components/AuthProviderWithRoleSync'
 
 /* Components */
 import ProtectedRoute from './components/ProtectedRoute';
+import SidebarMenu from './components/SidebarMenu';
 
 /* Pages */
 import CreateClientPage from './pages/CreateClientPage';
@@ -110,7 +111,10 @@ const App: React.FC = () => {
     <IonApp>
       <IonReactRouter>
         <AuthProviderWithRoleSync>
-          <IonRouterOutlet>
+          {/* Sidebar Menu */}
+          <SidebarMenu />
+
+          <IonRouterOutlet id="main-content">
             {/* Public Routes */}
             <Route exact path="/login">
               <LoginPage />

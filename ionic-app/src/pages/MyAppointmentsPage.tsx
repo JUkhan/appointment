@@ -15,6 +15,8 @@ import {
   IonText,
   IonButton,
   IonIcon,
+  IonButtons,
+  IonMenuButton,
   useIonViewWillEnter,
 } from '@ionic/react';
 import { closeCircleOutline } from 'ionicons/icons';
@@ -98,6 +100,9 @@ const MyAppointmentsPage: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonMenuButton />
+          </IonButtons>
           <IonTitle>My Appointments</IonTitle>
         </IonToolbar>
       </IonHeader>
