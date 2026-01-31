@@ -10,9 +10,6 @@ import {
   IonIcon,
   IonCard,
   IonCardContent,
-  IonSegment,
-  IonSegmentButton,
-  IonLabel,
   IonToast,
   IonText,
   IonButtons,
@@ -103,6 +100,7 @@ const VoiceAssistantPage: React.FC = () => {
         if (finalTranscript) {
           transcriptRef.current = finalTranscript.trim();
           textCaptured.current = true;
+          console.log('Final Transcript:', transcriptRef.current);
         }
       };
 
@@ -225,9 +223,9 @@ const VoiceAssistantPage: React.FC = () => {
 
       // Extract error message from response
       const errorMessage = error.response?.data?.error ||
-                          error.response?.data?.message ||
-                          error.message ||
-                          'Failed to process text';
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to process text';
 
       setToastMessage(errorMessage);
       setShowToast(true);

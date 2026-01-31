@@ -4,7 +4,7 @@ from flask_app import app
 from db import db
 from models import Client, DataUser, Transaction, TransactionalData
 from datetime import datetime
-from routes.parse_product import parse_products
+from routes.parse_product import extract_medicine_patterns, merge_duplicate_products_sum
 import uuid
 
 # ==================== CLIENT ROUTES ====================
@@ -441,13 +441,13 @@ def create_transaction():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         print(data['user_text'])
-        products, price = parse_products(data['user_text'])
+        price, products = extract_medicine_patterns(data['user_text'])
         print(price, products)
         if(not products):
             return jsonify({'error': 'Products are empty.'}), 500
         if(not price):
             return jsonify({'error': 'Total price not found.'}), 500
-        zero_q_p=[it for it in products if it.item_quantity==0]
+        zero_q_p=[it for it in products if it.quantity==0]
         if zero_q_p:
             return jsonify({'error': f'{zero_q_p[0].item_name} has quantity 0'}), 500
         # Create new transaction
@@ -460,7 +460,7 @@ def create_transaction():
             longitude=data.get('longitude')
         )
         
-        transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it.item_name, item_type=it.item_type, quantity=it.item_quantity) for it in products]
+        transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it.name, item_type=it.type, quantity=it.quantity) for it in merge_duplicate_products_sum(products)]
         
         db.session.add(transaction)
         db.session.bulk_save_objects(transactional_data)

@@ -4,57 +4,12 @@ from dataclasses import dataclass
 
 @dataclass
 class Product:
-    item_name: str
-    item_quantity: int
-    item_type: str
+    name: str
+    quantity: int
+    type: str
     
     def __repr__(self):
-        return f"Product(item_name:'{self.item_name}', item_quantity:{self.item_quantity}, item_type:'{self.item_type}')"
-
-
-def parse_products(text: str) -> Tuple[List[Product], Optional[int]]:
-    """
-    Parse product text and extract product list with total cost.
-    
-    Args:
-        text: Input string containing products and total cost
-        
-    Returns:
-        Tuple of (product_list, total_cost)
-    """
-    if not text:
-        return ([], None)
-    
-    text = add_zero_after_quantity(text.strip().replace('$', ''))
-    
-    # Extract total cost first (remove it from text for product parsing)
-    total_cost = _extract_total_cost(text)
-    
-    # Remove total cost portion from text
-    text_without_total = _remove_total_section(text)
-    
-    # Extract products
-    products = _extract_products(text_without_total)
-    
-    return (products, total_cost)
-
-
-def _extract_total_cost(text: str) -> Optional[int]:
-    """Extract total cost from text."""
-    # Pattern 1: "Total cost 1612" or "Total price 1612"
-    pattern1 = r'(?:total\s+(?:cost|price))\s+(\d+)'
-    match = re.search(pattern1, text, re.IGNORECASE)
-    if match:
-        return int(match.group(1))
-    
-    # Pattern 2: "Total cost One two three six" -> 1236
-    pattern2 = r'(?:total\s+(?:cost|price))\s+((?:zero|one|two|three|four|five|six|seven|eight|nine|\s)+)'
-    match = re.search(pattern2, text, re.IGNORECASE)
-    if match:
-        number_text = match.group(1).strip()
-        return _words_to_number(number_text)
-    
-    return None
+        return f"Product(name:'{self.name}', quantity:{self.quantity}, type:'{self.type}')"
 
 
 def _words_to_number(text: str) -> int:
@@ -64,128 +19,150 @@ def _words_to_number(text: str) -> int:
         'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9'
     }
     
-    words = text.lower().split()
+    words = text.split()
     digits = []
     
     for word in words:
         word = word.strip()
         if word in word_to_digit:
             digits.append(word_to_digit[word])
+        else: digits.append(word)
     
     if digits:
         return int(''.join(digits))
     return 0
 
 
-def _remove_total_section(text: str) -> str:
-    """Remove total cost/price section from text."""
-    # Remove everything after "Total cost" or "Total price"
-    pattern = r'(total\s+(?:cost|price)).*$'
-    text = re.sub(pattern, '', text, flags=re.IGNORECASE)
-    return text.strip()
 
-
-def _extract_products(text: str) -> List[Product]:
-    """Extract products from text."""
-    products = []
-    product_types = ['tablet', 'syrup', 'injection']
-    
-    # Pattern: "Product name [type] quantity N"
-    # More flexible pattern to handle various formats
-    pattern = r'([A-Za-z\s]+?)\s*(?:(tablet|syrup|injection)\s+)?quantity\s+([\d\w]+)'
-    
-    matches = re.finditer(pattern, text, re.IGNORECASE)
-    
-    for match in matches:
-        item_name = match.group(1).strip()
-        item_type = match.group(2).lower() if match.group(2) else ''
-        item_quantity = int(match.group(3)) if match.group(3).isdecimal() else _words_to_number(match.group(3))
-        
-        # Clean up item name (remove extra spaces)
-        item_name = ' '.join(item_name.split())
-        
-        products.append(Product(
-            item_name=item_name,
-            item_quantity=item_quantity,
-            item_type=item_type
-        ))
-    
-    # Merge duplicate products (same name and type, sum quantities)
-    merged_products = _merge_duplicate_products_sum(products)
-    
-    return merged_products
-
-
-def _merge_duplicate_products_sum(products: List[Product]) -> List[Product]:
+def merge_duplicate_products_sum(products: List[Product]) -> List[Product]:
     """Merge products with same name and type, summing quantities."""
     product_dict = {}
     
     for product in products:
-        key = (product.item_name, product.item_type)
+        key = (product.name, product.type)
         if key in product_dict:
             # Sum quantities
-            product_dict[key].item_quantity += product.item_quantity
+            product_dict[key].quantity += product.quantity
         else:
             product_dict[key] = Product(
-                item_name=product.item_name,
-                item_quantity=product.item_quantity,
-                item_type=product.item_type
+                name=product.name,
+                quantity=product.quantity,
+                type=product.type
             )
     
     return list(product_dict.values())
 
-def add_zero_after_quantity(text):
+
+
+def extract_medicine_price_patterns(text):
     """
-    Add '0' after 'quantity' if not followed by a number or number name (one-nine).
+    Extract medicine price/cost patterns from text.
+    Pattern: medicine total price|cost anything? digit+|one-nine
     
     Args:
-        text: Input string containing 'quantity' keywords
+        text: Input string containing medicine and price information
         
     Returns:
-        Modified string with '0' added where appropriate
+        List of dictionaries containing extracted patterns
     """
-    import re
     
-    # Number names to check for
-    number_names = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
     
-    # Split by 'quantity' and process each part
-    parts = text.split('quantity')
-    result = []
+    # Pattern explanation:
+    # (\w+) - medicine name (one or more word characters)
+    # \s+ - whitespace
+    # total\s+(?:price|cost) - literal 'total' followed by 'price' or 'cost'
+    # \s+ - whitespace
+    # ((?:\w+\s+)*?) - optional words between total price/cost and number (non-greedy)
+    # (\$?\d+|\$?one|\$?two|\$?three|\$?four|\$?five|\$?six|\$?seven|\$?eight|\$?nine) - number or number name (with optional $)
     
-    for i, part in enumerate(parts):
-        if i < len(parts) - 1:  # Not the last part
-            # Check what comes after 'quantity'
-            stripped = part.strip() if i == 0 else part
-            result.append(stripped)
-            result.append('quantity')
-            
-            # Look at the beginning of the next part
-            next_part = parts[i + 1].strip()
-            
-            # Check if next part starts with a digit or number name
-            has_number = False
-            
-            # Check for digit
-            if next_part and next_part[0].isdigit():
-                has_number = True
-            
-            # Check for number names
-            if not has_number:
-                for num_name in number_names:
-                    if next_part.lower().startswith(num_name):
-                        has_number = True
-                        break
-            
-            # Add '0' if no number found
-            if not has_number:
-                result.append(' 0')
-        else:
-            # Last part
-            result.append(part)
+    pattern = r'total\s+(?:price|cost)\s+((?:\S+\s+)*?)(\$?\d+|\$?one|\$?two|\$?three|\$?four|\$?five|\$?six|\$?seven|\$?eight|\$?nine)'
     
-    return ''.join(result)
+    matches = re.finditer(pattern, text, re.IGNORECASE)
+    
+    results = []
+    for match in matches:
+        price_value = match.group(2)
+        
+        results.append({
+            'price': price_value,
+            'full_match': match.group(0)
+        })
+    
+    if results:
+        return  _words_to_number(results[0]['price'].replace('$','')), text.replace(results[0].get('full_match',''),'')
+    return 0, text
 
+
+
+
+def extract_medicine_patterns(text):
+    """
+    Extract medicine patterns from text.
+    Pattern: medicine_name [tablet|syrup|powder]? quantity digit+|one-nine
+    If no number found after quantity, default to '0'
+    
+    Args:
+        text: Input string containing medicine information
+        
+    Returns:
+        List of dictionaries containing extracted patterns
+    """
+    price, text = extract_medicine_price_patterns(text)
+    
+    # First pattern: matches quantity WITH a number
+    pattern_with_number = r'(\w+)\s+(tablet|syrup|powder)?\s*quantity\s+((?:(?!quantity)\S+\s+)*?)(\d+|one|two|three|four|five|six|seven|eight|nine)\b'
+    
+    # Second pattern: matches quantity WITHOUT a number (up to next medicine or end)
+    pattern_without_number = r'(\w+)\s+(tablet|syrup|powder)?\s*quantity\s+(?!(?:(?!quantity)\S+\s+)*?(?:\d+|one|two|three|four|five|six|seven|eight|nine)\b)'
+    
+    results = []
+    
+    # Find all matches with numbers
+    matches_with_number = re.finditer(pattern_with_number, text, re.IGNORECASE)
+    matched_positions = set()
+    
+    for match in matches_with_number:
+        medicine_name = match.group(1)
+        medicine_type = match.group(2) if match.group(2) else None
+        #between_text = match.group(3).strip() if match.group(3) else None
+        quantity_value =  _words_to_number(match.group(4).replace('$','0'))
+        
+        matched_positions.add((match.start(), match.end()))
+        
+        results.append(Product(
+            name= medicine_name,
+            type= medicine_type,
+            #'between_quantity_and_number': between_text if between_text else None,
+            quantity= quantity_value,
+            #'full_match': match.group(0)
+        ))
+    
+    # Find all matches without numbers
+    matches_without_number = re.finditer(pattern_without_number, text, re.IGNORECASE)
+    
+    for match in matches_without_number:
+        # Check if this position was already matched
+        already_matched = False
+        for start, end in matched_positions:
+            if match.start() >= start and match.start() < end:
+                already_matched = True
+                break
+        
+        if not already_matched:
+            medicine_name = match.group(1)
+            medicine_type = match.group(2) if match.group(2) else None
+            
+            results.append(Product(
+                name= medicine_name,
+                type= medicine_type,
+                quantity= 0,  # Default value
+                #'full_match': match.group(0)
+            ))
+    
+    # Sort results by position in text
+    #results.sort(key=lambda x: text.index(x['full_match']))
+    
+    return price, results
 # Test cases
 if __name__ == "__main__":
     test_cases = [
@@ -195,13 +172,13 @@ if __name__ == "__main__":
         #'Aspirin tablet quantity 5 Vitamin C tablet quantity 10 Total price 250',
         #'Cough syrup quantity 1 Napa tablet quantity 10 Napa tablet quantity 5 Total cost Nine eight seven',
         #'Insulin injection Quantity 2 Insulin injection Quantity One Total cost Two three five six taka'
-        'Napa tablet quantity 23 minarel tablet quantity total price $20',
-        'Napa tablet quantity 10 Mineral tablet quantity Total price 200 Dhaka'
+        'Napa tablet quantity sd seven minarel tablet quantity  total price Uh nine dhaka',
+        'Napa tablet quantity 10 Mineral tablet quantity ah 6 total price 34'
     ]
     
     for text in test_cases:
-        products, total_cost = parse_products(text)
+        price, products_list = extract_medicine_patterns(text)
         print(f"Input: {text}")
-        print(f"Output: ({products}, {total_cost})")
+        print(f"Output: {price} {merge_duplicate_products_sum(products_list)}")
         print()
-    print(_words_to_number('three four'))
+    print(_words_to_number('three four 23'))
