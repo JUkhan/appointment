@@ -443,6 +443,9 @@ def create_transaction():
         print(data['user_text'])
         products, price = parse_products(data['user_text'])
         print(price, products)
+        if(not price):
+            return jsonify({'error': 'Price not recognized.'}), 500
+        
         # Create new transaction
         transaction = Transaction(
             id = str(uuid.uuid4()),

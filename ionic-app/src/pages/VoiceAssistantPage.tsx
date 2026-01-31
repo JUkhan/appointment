@@ -168,9 +168,6 @@ const VoiceAssistantPage: React.FC = () => {
 
   const stopRecording = async () => {
     setIsRecording(false);
-    if (!textCaptured.current) {
-      await new Promise(resolve => setTimeout(resolve, 2500));
-    }
     try {
       if (recognitionRef.current && isRecording) {
         recognitionRef.current.stop();
