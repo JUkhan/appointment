@@ -4,7 +4,7 @@ from flask_app import app
 from db import db
 from init_db import init_db
 import threading
-from agent.app import cleanup_old_threads
+
 from init_db import init_db
 
 # Configuration
@@ -32,8 +32,7 @@ from routes.basic_routes import *
 from routes.data_center import *
 
 init_db()
-cleanup_thread = threading.Thread(target=cleanup_old_threads, daemon=True)
-cleanup_thread.start()
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

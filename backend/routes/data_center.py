@@ -443,9 +443,13 @@ def create_transaction():
         print(data['user_text'])
         products, price = parse_products(data['user_text'])
         print(price, products)
+        if(not products):
+            return jsonify({'error': 'Products are empty.'}), 500
         if(not price):
-            return jsonify({'error': 'Price not recognized.'}), 500
-        
+            return jsonify({'error': 'Total price not found.'}), 500
+        zero_q_p=[it for it in products if it.item_quantity==0]
+        if zero_q_p:
+            return jsonify({'error': f'{zero_q_p[0].item_name} has quantity 0'}), 500
         # Create new transaction
         transaction = Transaction(
             id = str(uuid.uuid4()),
@@ -455,6 +459,7 @@ def create_transaction():
             latitude=data.get('latitude'),
             longitude=data.get('longitude')
         )
+        
         transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it.item_name, item_type=it.item_type, quantity=it.item_quantity) for it in products]
         
         db.session.add(transaction)

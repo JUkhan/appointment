@@ -25,7 +25,7 @@ def parse_products(text: str) -> Tuple[List[Product], Optional[int]]:
     if not text:
         return ([], None)
     
-    text = text.strip().replace('$', '')
+    text = add_zero_after_quantity(text.strip().replace('$', ''))
     
     # Extract total cost first (remove it from text for product parsing)
     total_cost = _extract_total_cost(text)
@@ -134,6 +134,57 @@ def _merge_duplicate_products_sum(products: List[Product]) -> List[Product]:
     
     return list(product_dict.values())
 
+def add_zero_after_quantity(text):
+    """
+    Add '0' after 'quantity' if not followed by a number or number name (one-nine).
+    
+    Args:
+        text: Input string containing 'quantity' keywords
+        
+    Returns:
+        Modified string with '0' added where appropriate
+    """
+    import re
+    
+    # Number names to check for
+    number_names = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+    
+    # Split by 'quantity' and process each part
+    parts = text.split('quantity')
+    result = []
+    
+    for i, part in enumerate(parts):
+        if i < len(parts) - 1:  # Not the last part
+            # Check what comes after 'quantity'
+            stripped = part.strip() if i == 0 else part
+            result.append(stripped)
+            result.append('quantity')
+            
+            # Look at the beginning of the next part
+            next_part = parts[i + 1].strip()
+            
+            # Check if next part starts with a digit or number name
+            has_number = False
+            
+            # Check for digit
+            if next_part and next_part[0].isdigit():
+                has_number = True
+            
+            # Check for number names
+            if not has_number:
+                for num_name in number_names:
+                    if next_part.lower().startswith(num_name):
+                        has_number = True
+                        break
+            
+            # Add '0' if no number found
+            if not has_number:
+                result.append(' 0')
+        else:
+            # Last part
+            result.append(part)
+    
+    return ''.join(result)
 
 # Test cases
 if __name__ == "__main__":
@@ -144,7 +195,8 @@ if __name__ == "__main__":
         #'Aspirin tablet quantity 5 Vitamin C tablet quantity 10 Total price 250',
         #'Cough syrup quantity 1 Napa tablet quantity 10 Napa tablet quantity 5 Total cost Nine eight seven',
         #'Insulin injection Quantity 2 Insulin injection Quantity One Total cost Two three five six taka'
-        'Nava tablet quantity 10 total price $20'
+        'Napa tablet quantity 23 minarel tablet quantity total price $20',
+        'Napa tablet quantity 10 Mineral tablet quantity Total price 200 Dhaka'
     ]
     
     for text in test_cases:

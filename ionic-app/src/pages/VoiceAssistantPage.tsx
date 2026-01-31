@@ -222,7 +222,14 @@ const VoiceAssistantPage: React.FC = () => {
       await playTTS(response.llm_response);
     } catch (error: any) {
       console.error('Process text error:', error);
-      setToastMessage(error.response?.data?.message || 'Failed to process text');
+
+      // Extract error message from response
+      const errorMessage = error.response?.data?.error ||
+                          error.response?.data?.message ||
+                          error.message ||
+                          'Failed to process text';
+
+      setToastMessage(errorMessage);
       setShowToast(true);
     } finally {
       setIsProcessing(false);
@@ -289,10 +296,11 @@ const VoiceAssistantPage: React.FC = () => {
             <IonText color="medium">
               <h3>Welcome to Voice Assistant</h3>
               <p>1. Press the microphone button to start</p>
-              <p>2. Speak your question</p>
-              <p>3. Press the stop button when done</p>
+              <p>2. Speak product name and quantity</p>
+              <p>3. Speak total price/cost</p>
+              <p>4. Press the stop button when done</p>
               <p style={{ fontSize: '0.875rem', marginTop: '1rem', color: 'var(--ion-color-primary)' }}>
-                Napa table quantity 10 Total cost 20 taka
+                Napa tablet quantity 10 Minaril tablet quantity 5 Total price 120 taka
               </p>
             </IonText>
           </div>

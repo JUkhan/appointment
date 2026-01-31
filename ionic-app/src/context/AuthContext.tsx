@@ -3,8 +3,9 @@ import { useHistory } from 'react-router-dom';
 import apiService from '../services/apiService';
 import storageService from '../services/storageService';
 import { TOKEN_KEYS, CLIENT_ID } from '../constants/api';
-import { extractRole } from '../utils/jwtUtils';
-import type { LoginData, RegisterData, UserRole, RoleChangeCallback, RoleChangeEvent } from '../types';
+import { extractRole, getAllClaims } from '../utils/jwtUtils';
+import type { LoginData, RegisterData, UserRole, Username, RoleChangeCallback, RoleChangeEvent } from '../types';
+import { getAllByRole } from '@testing-library/dom';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [username, setUsername] = useState<Username | null>(null);
   const [roleChangeCallbacks, setRoleChangeCallbacks] = useState<RoleChangeCallback[]>([]);
   const history = useHistory();
 
@@ -48,18 +50,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUserId(storedUserId);
 
         // Extract and set role from access token
-        const role = extractRole(accessToken);
-        setUserRole(role);
+        const claims = getAllClaims(accessToken);
+        setUserRole(claims?.role as UserRole || null);
+        setUsername(claims?.username as Username || null);
       } else {
         setIsAuthenticated(false);
         setUserId(null);
         setUserRole(null);
+        setUsername(null);
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
       setIsAuthenticated(false);
       setUserId(null);
       setUserRole(null);
+      setUsername(null);
     } finally {
       setIsLoading(false);
     }
@@ -78,11 +83,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       ]);
 
       // Extract and set role from access token
-      const role = extractRole(response.access_token);
+      const claims = getAllClaims(response.access_token);
+      const role = claims?.role as UserRole || null;
+      const username = claims?.username as Username || null;
 
       setIsAuthenticated(true);
       setUserId(response.user_id.toString());
       setUserRole(role);
+      setUsername(username);
 
       // Navigate to main app
       history.push('/assistant');
@@ -118,6 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(false);
       setUserId(null);
       setUserRole(null);
+      setUsername(null);
 
       // Use window.location to do a full page reload and avoid React update loop
       // This ensures a clean state after logout
@@ -208,6 +217,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     hasRole,
     onRoleChange,
     refreshRole,
+    username,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

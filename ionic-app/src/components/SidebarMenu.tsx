@@ -35,7 +35,7 @@ import RoleGuard from './RoleGuard';
 
 const SidebarMenu: React.FC = () => {
   const history = useHistory();
-  const { logout, userId, userRole } = useAuth();
+  const { logout, userRole, username } = useAuth();
   const { isAdmin, isDoctor, isPatient, isReceptionist } = useRole();
 
   const handleLogout = async () => {
@@ -59,10 +59,7 @@ const SidebarMenu: React.FC = () => {
           <IonItem lines="none">
             <IonIcon icon={personOutline} slot="start" />
             <IonLabel>
-              <h3>User ID: {userId}</h3>
-              <p>
-                Role: <IonBadge color="primary">{userRole || 'None'}</IonBadge>
-              </p>
+              <h3>{username || 'None'}</h3>
             </IonLabel>
           </IonItem>
         </IonList>

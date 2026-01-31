@@ -126,7 +126,7 @@ export interface UpdateDataUserResponse {
 
 // Role-based authorization types
 export type UserRole = string; // Can be 'admin', 'doctor', 'patient', 'receptionist', etc.
-
+export type Username = string;
 export interface RoleChangeEvent {
   oldRole: string | null;
   newRole: string | null;
