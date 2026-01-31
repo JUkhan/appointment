@@ -110,10 +110,10 @@ def extract_medicine_patterns(text):
     price, text = extract_medicine_price_patterns(text)
     
     # First pattern: matches quantity WITH a number
-    pattern_with_number = r'(\w+)\s+(tablet|syrup|powder)?\s*quantity\s+((?:(?!quantity)\S+\s+)*?)(\d+|one|two|three|four|five|six|seven|eight|nine)\b'
+    pattern_with_number = r'(\w+)\s+(tablet|syrup|powder|injection)?\s*quantity\s+((?:(?!quantity)\S+\s+)*?)(\d+|one|two|three|four|five|six|seven|eight|nine)\b'
     
     # Second pattern: matches quantity WITHOUT a number (up to next medicine or end)
-    pattern_without_number = r'(\w+)\s+(tablet|syrup|powder)?\s*quantity\s+(?!(?:(?!quantity)\S+\s+)*?(?:\d+|one|two|three|four|five|six|seven|eight|nine)\b)'
+    pattern_without_number = r'(\w+)\s+(tablet|syrup|powder|injection)?\s*quantity\s+(?!(?:(?!quantity)\S+\s+)*?(?:\d+|one|two|three|four|five|six|seven|eight|nine)\b)'
     
     results = []
     

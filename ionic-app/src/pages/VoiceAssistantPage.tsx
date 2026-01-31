@@ -33,8 +33,8 @@ declare global {
 
 const VoiceAssistantPage: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [language, setLanguage] = useState<'en' | 'bn'>('en');
+  //const [recordingDuration, setRecordingDuration] = useState(0);
+  const [language] = useState<'en' | 'bn'>('en');
   const [messages, setMessages] = useState<Message[]>([]);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -43,7 +43,7 @@ const VoiceAssistantPage: React.FC = () => {
   const contentRef = useRef<HTMLIonContentElement>(null);
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
-  const textCaptured = useRef<boolean>(false);
+  const [interimText, setIntrimText] = useState('');
 
   useEffect(() => {
     initializeSpeechRecognition();
@@ -80,27 +80,32 @@ const VoiceAssistantPage: React.FC = () => {
 
       recognition.onstart = () => {
         setIsRecording(true);
-        setRecordingDuration(0);
+        //setRecordingDuration(0);
         transcriptRef.current = ''; // Reset transcript
         // Start duration counter
-        recordingIntervalRef.current = setInterval(() => {
-          setRecordingDuration((prev) => prev + 1);
-        }, 1000);
+        // recordingIntervalRef.current = setInterval(() => {
+        //   setRecordingDuration((prev) => prev + 1);
+        // }, 1000);
       };
 
       recognition.onresult = (event: any) => {
-        textCaptured.current = false;
+
+        let interim = '';
         // Accumulate all final results
         let finalTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript + ' ';
+          } else {
+            interim += event.results[i][0].transcript + ' ';
+
           }
+        }
+        if (interim) {
+          setIntrimText(transcriptRef.current + ' ' + interim);
         }
         if (finalTranscript) {
           transcriptRef.current = finalTranscript.trim();
-          textCaptured.current = true;
-          console.log('Final Transcript:', transcriptRef.current);
         }
       };
 
@@ -194,6 +199,7 @@ const VoiceAssistantPage: React.FC = () => {
 
   const processText = async (text: string) => {
     setIsProcessing(true);
+    setIntrimText('');
     try {
       // Add user message
       const userMessage: Message = {
@@ -252,12 +258,6 @@ const VoiceAssistantPage: React.FC = () => {
       console.error('TTS error:', error);
       // Don't show error to user, just log it
     }
-  };
-
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleToggleRecording = () => {
@@ -340,6 +340,7 @@ const VoiceAssistantPage: React.FC = () => {
                   >
                     {message.timestamp.toLocaleTimeString()}
                   </div>
+
                 </IonCardContent>
               </IonCard>
             ))}
@@ -364,30 +365,56 @@ const VoiceAssistantPage: React.FC = () => {
           </IonFabButton>
         </IonFab>
 
-        {isRecording && (
+        {interimText && (
           <div
             style={{
               position: 'fixed',
-              bottom: '100px',
+              top: '50%',
               left: '50%',
-              transform: 'translateX(-50%)',
+              transform: 'translate(-50%, -50%)',
               textAlign: 'center',
-              zIndex: 1000,
-              maxWidth: '90%',
+              zIndex: 999,
+              maxWidth: '85%',
+              width: '100%',
             }}
           >
-            <IonCard>
+            <IonCard
+              style={{
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                border: '2px solid var(--ion-color-primary)',
+              }}
+            >
               <IonCardContent>
-                <IonText color="danger">
-                  <h3>🎤 Listening...</h3>
-                  <p style={{ margin: '0.5rem 0' }}>Speak your question</p>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--ion-color-medium)' }}>
-                    Click stop when you're done
-                  </p>
-                  <p style={{ fontSize: '1rem', fontWeight: 'bold', marginTop: '0.5rem' }}>
-                    {formatDuration(recordingDuration)}
-                  </p>
+                <IonText color="primary">
+                  <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 'bold' }}>
+                    🎙️ Recognizing...
+                  </h2>
                 </IonText>
+                <div
+                  style={{
+                    backgroundColor: 'var(--ion-color-light)',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <IonText>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: '1.1rem',
+                        fontStyle: 'italic',
+                        color: 'var(--ion-color-dark)',
+                        lineHeight: '1.5',
+                      }}
+                    >
+                      "{interimText}"
+                    </p>
+                  </IonText>
+                </div>
               </IonCardContent>
             </IonCard>
           </div>

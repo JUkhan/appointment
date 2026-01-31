@@ -449,7 +449,7 @@ def create_transaction():
             return jsonify({'error': 'Total price not found.'}), 500
         zero_q_p=[it for it in products if it.quantity==0]
         if zero_q_p:
-            return jsonify({'error': f'{zero_q_p[0].item_name} has quantity 0'}), 500
+            return jsonify({'error': f'{zero_q_p[0].name} has quantity 0'}), 500
         # Create new transaction
         transaction = Transaction(
             id = str(uuid.uuid4()),
