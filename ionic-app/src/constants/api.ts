@@ -52,7 +52,7 @@ export const API_ENDPOINTS = {
 
   // Voice Assistant
   PROCESS_AUDIO: '/process-audio',
-  PROCESS_TEXT: '/process-text',
+  PROCESS_TEXT: '/api/transactions',
   GET_AUDIO: (id: string) => `/get-audio/${id}`,
   CLEANUP: (id: string) => `/cleanup/${id}`,
 } as const;

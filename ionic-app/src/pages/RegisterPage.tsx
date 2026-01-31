@@ -28,7 +28,6 @@ const RegisterPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('danger');
   const { register } = useAuth();
-  const history = useHistory();
 
   const handleRegister = async () => {
     // Validation

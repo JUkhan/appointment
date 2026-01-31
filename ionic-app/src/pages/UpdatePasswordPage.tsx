@@ -168,7 +168,7 @@ const UpdatePasswordPage: React.FC = () => {
 
       // Redirect to home after 2 seconds
       setTimeout(() => {
-        history.push('/tabs/book');
+        history.push('/assistant');
       }, 2000);
 
     } catch (error: any) {

@@ -275,7 +275,7 @@ const VoiceAssistantPage: React.FC = () => {
           </IonButtons>
           <IonTitle>Voice Assistant</IonTitle>
         </IonToolbar>
-        <IonToolbar>
+        {/* <IonToolbar>
           <IonSegment value={language} onIonChange={(e) => setLanguage(e.detail.value as 'en' | 'bn')}>
             <IonSegmentButton value="en">
               <IonLabel>English</IonLabel>
@@ -284,7 +284,7 @@ const VoiceAssistantPage: React.FC = () => {
               <IonLabel>Bengali</IonLabel>
             </IonSegmentButton>
           </IonSegment>
-        </IonToolbar>
+        </IonToolbar> */}
       </IonHeader>
       <IonContent ref={contentRef} className="ion-padding">
         {!messages || messages.length === 0 ? (
@@ -295,7 +295,7 @@ const VoiceAssistantPage: React.FC = () => {
               <p>2. Speak your question</p>
               <p>3. Press the stop button when done</p>
               <p style={{ fontSize: '0.875rem', marginTop: '1rem', color: 'var(--ion-color-primary)' }}>
-                Ask about doctors, appointments, or medical queries
+                Napa table quantity 10 Total cost 20 taka
               </p>
             </IonText>
           </div>

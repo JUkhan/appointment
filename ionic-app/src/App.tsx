@@ -48,8 +48,6 @@ import SidebarMenu from './components/SidebarMenu';
 import CreateClientPage from './pages/CreateClientPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import BookAppointmentPage from './pages/BookAppointmentPage';
-import MyAppointmentsPage from './pages/MyAppointmentsPage';
 import VoiceAssistantPage from './pages/VoiceAssistantPage';
 import ManageUsersPage from './pages/ManageUsersPage';
 import UpdatePasswordPage from './pages/UpdatePasswordPage';
@@ -102,7 +100,10 @@ const App: React.FC = () => {
       <IonApp>
         <IonReactRouter>
           <IonRouterOutlet>
-            <Route path="/">
+            <Route exact path="/system-settings">
+              <SystemSettingsPage />
+            </Route>
+            <Route exact path="/">
               <CreateClientPage />
             </Route>
           </IonRouterOutlet>
@@ -125,23 +126,17 @@ const App: React.FC = () => {
             <Route exact path="/login">
               <LoginPage />
             </Route>
-            <Route exact path="/register">
+            <RoleProtectedRoute allowedRoles={'admin'} exact path="/register">
               <RegisterPage />
-            </Route>
+            </RoleProtectedRoute>
+
+            <RoleProtectedRoute allowedRoles={'admin'} exact path="/manage-users">
+              <ManageUsersPage />
+            </RoleProtectedRoute>
 
             <Route exact path="/system-settings">
               <SystemSettingsPage />
             </Route>
-
-            {/* Admin-Only Routes */}
-            <RoleProtectedRoute
-              exact
-              path="/manage-users"
-              allowedRoles="admin"
-              component={ManageUsersPage}
-              redirectTo="/tabs/book"
-            />
-
 
             {/* Protected Routes (All Authenticated Users) */}
             <ProtectedRoute
@@ -154,43 +149,12 @@ const App: React.FC = () => {
               path="/settings"
               component={SettingsPage}
             />
+            <ProtectedRoute
+              exact
+              path="/assistant"
+              component={VoiceAssistantPage}
+            />
 
-            {/* Protected Routes with Tabs */}
-            <Route path="/tabs">
-              <IonTabs>
-                <IonRouterOutlet>
-                  <ProtectedRoute exact path="/tabs/book" component={BookAppointmentPage} />
-                  <ProtectedRoute
-                    exact
-                    path="/tabs/appointments"
-                    component={MyAppointmentsPage}
-                  />
-                  <ProtectedRoute
-                    exact
-                    path="/tabs/assistant"
-                    component={VoiceAssistantPage}
-                  />
-                  <Route exact path="/tabs">
-                    <Redirect to="/tabs/book" />
-                  </Route>
-                </IonRouterOutlet>
-
-                <IonTabBar slot="bottom">
-                  <IonTabButton tab="book" href="/tabs/book">
-                    <IonIcon icon={calendarOutline} />
-                    <IonLabel>Book</IonLabel>
-                  </IonTabButton>
-                  <IonTabButton tab="appointments" href="/tabs/appointments">
-                    <IonIcon icon={listOutline} />
-                    <IonLabel>Appointments</IonLabel>
-                  </IonTabButton>
-                  <IonTabButton tab="assistant" href="/tabs/assistant">
-                    <IonIcon icon={micOutline} />
-                    <IonLabel>Assistant</IonLabel>
-                  </IonTabButton>
-                </IonTabBar>
-              </IonTabs>
-            </Route>
 
             {/* Default Redirect */}
             <Route exact path="/">

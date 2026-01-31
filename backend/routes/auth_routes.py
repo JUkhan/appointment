@@ -2,7 +2,7 @@ from flask import request, jsonify
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 from flask_app import app
 from db import db
-from models import  DataUser
+from models import  DataUser, Client
 
 jwt = JWTManager(app)
 
@@ -58,10 +58,10 @@ def login():
             return jsonify({'error': 'Username and password are required'}), 400
         
         user = DataUser.query.filter_by(username=username, client_id=client_id).first()
-
-        if user and user.check_password(password) and user.is_active:
+        client= Client.query.get(client_id)
+        if user and user.check_password(password) and user.is_active and client.is_active:
             # Create both access and refresh tokens
-            claims={'role':user.role, 'is_active':user.is_active}
+            claims={'role':user.role, 'username':user.username}
             access_token = create_access_token(identity=str(user.id), fresh=True, additional_claims=claims)
             refresh_token = create_refresh_token(identity=str(user.id), additional_claims=claims)
 
@@ -88,9 +88,10 @@ def refresh():
         current_user = get_jwt_identity()
         print('::::refresh:::::',current_user)
         user = DataUser.query.filter_by(id=current_user).first()
-        if not user.is_active:
+        client= Client.query.get(user.client_id)
+        if not (user.is_active or client.is_active):
             return jsonify({'error': str(e)}), 500
-        claims={'role':user.role, 'is_active':user.is_active}
+        claims={'role':user.role, 'username':user.username}
         new_access_token = create_access_token(identity=current_user, fresh=False, additional_claims=claims)
 
         return jsonify({

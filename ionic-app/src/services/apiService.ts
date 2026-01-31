@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { API_BASE_URL, API_ENDPOINTS, REQUEST_TIMEOUT, TOKEN_KEYS } from '../constants/api';
+import { API_BASE_URL, API_ENDPOINTS, REQUEST_TIMEOUT, TOKEN_KEYS, CLIENT_ID } from '../constants/api';
 import storageService from './storageService';
 import { extractRole } from '../utils/jwtUtils';
 import type {
@@ -162,6 +162,12 @@ apiClient.interceptors.response.use(
 
 // API Service methods
 export const apiService = {
+
+  async updateSystemSettings(apiKey: string): Promise<{ is_success: boolean }> {
+    const response = await apiClient.get<{ is_success: boolean }>(`/api/system-settings/${apiKey}`);
+    return response.data;
+  },
+
   /**
    * Login user
    */
@@ -269,9 +275,11 @@ export const apiService = {
    * Process text for voice assistant
    */
   async processText(text: string, language: string): Promise<ProcessTextResponse> {
+    const clientId = await storageService.getItem(CLIENT_ID);
     const response = await apiClient.post<ProcessTextResponse>(API_ENDPOINTS.PROCESS_TEXT, {
-      'user-text': text,
-      language,
+      'user_text': text,
+      'client_id': clientId,
+      language
     });
     return response.data;
   },

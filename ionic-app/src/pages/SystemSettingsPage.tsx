@@ -30,11 +30,18 @@ import {
   eyeOffOutline,
   checkmarkCircleOutline,
   alertCircleOutline,
+  arrowBackOutline,
 } from 'ionicons/icons';
+import { useHistory } from 'react-router-dom';
 import storageService from '../services/storageService';
 import { CLIENT_ID } from '../constants/api';
+import apiService from '../services/apiService';
+
+const SYSTEM_API_KEY = CLIENT_ID;
 
 const SystemSettingsPage: React.FC = () => {
+  const history = useHistory();
+
   // State
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -55,7 +62,7 @@ const SystemSettingsPage: React.FC = () => {
   const loadSettings = async () => {
     try {
       setIsLoading(true);
-      const savedApiKey = await storageService.getItem(CLIENT_ID);
+      const savedApiKey = await storageService.getItem(SYSTEM_API_KEY);
 
       if (savedApiKey) {
         setApiKey(savedApiKey);
@@ -84,8 +91,8 @@ const SystemSettingsPage: React.FC = () => {
       return;
     }
 
-    if (apiKey.length < 10) {
-      setToastMessage('API Key must be at least 10 characters');
+    if (apiKey.length < 36) {
+      setToastMessage('API Key must be at least 36 characters');
       setToastColor('warning');
       setShowToast(true);
       return;
@@ -94,16 +101,26 @@ const SystemSettingsPage: React.FC = () => {
     setIsSaving(true);
 
     try {
-      // Save to storage
-      await storageService.setItem(CLIENT_ID, apiKey);
+      const savedApiKey = await storageService.getItem(SYSTEM_API_KEY);// Here you could also make an API call to save on the backend
+      const { is_success } = await apiService.updateSystemSettings(apiKey);
+      if (is_success) {
+        // Save to storage
+        await storageService.setItem(SYSTEM_API_KEY, apiKey);
 
-      setToastMessage('System settings saved successfully!');
-      setToastColor('success');
-      setShowToast(true);
-      setHasChanges(false);
-
-      // Here you could also make an API call to save on the backend
-      // await apiService.updateSystemSettings({ api_key: apiKey });
+        setToastMessage('System settings saved successfully!');
+        setToastColor('success');
+        setShowToast(true);
+        setHasChanges(false);
+        if (savedApiKey !== apiKey) {
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+        }
+      } else {
+        setToastMessage('Failed to save settings. Please try again.');
+        setToastColor('danger');
+        setShowToast(true);
+      }
 
     } catch (error) {
       console.error('Error saving system settings:', error);
@@ -125,7 +142,7 @@ const SystemSettingsPage: React.FC = () => {
 
   const handleClear = async () => {
     try {
-      //await storageService.setItem(CLIENT_ID, '');
+      await storageService.setItem(SYSTEM_API_KEY, '');
       setApiKey('');
       setHasChanges(false);
       setToastMessage('API Key cleared');
@@ -139,12 +156,19 @@ const SystemSettingsPage: React.FC = () => {
     }
   };
 
+  const handleBack = () => {
+    history.goBack();
+  };
+
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
             <IonMenuButton />
+            <IonButton onClick={handleBack}>
+              <IonIcon icon={arrowBackOutline} slot="icon-only" />
+            </IonButton>
           </IonButtons>
           <IonTitle>
             <IonIcon icon={shieldCheckmarkOutline} style={{ marginRight: '8px' }} />
@@ -262,7 +286,7 @@ const SystemSettingsPage: React.FC = () => {
                     )}
                   </IonButton>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  {/* <div style={{ display: 'flex', gap: '8px' }}>
                     <IonButton
                       expand="block"
                       fill="outline"
@@ -280,7 +304,18 @@ const SystemSettingsPage: React.FC = () => {
                     >
                       Clear
                     </IonButton>
-                  </div>
+                  </div> */}
+
+                  {/* <IonButton
+                    expand="block"
+                    fill="clear"
+                    onClick={handleBack}
+                    disabled={isSaving}
+                    style={{ marginTop: '8px' }}
+                  >
+                    <IonIcon icon={arrowBackOutline} slot="start" />
+                    Back to Setup
+                  </IonButton> */}
                 </div>
               </IonCardContent>
             </IonCard>

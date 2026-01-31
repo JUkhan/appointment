@@ -25,7 +25,7 @@ def parse_products(text: str) -> Tuple[List[Product], Optional[int]]:
     if not text:
         return ([], None)
     
-    text = text.strip()
+    text = text.strip().replace('$', '')
     
     # Extract total cost first (remove it from text for product parsing)
     total_cost = _extract_total_cost(text)
@@ -100,7 +100,7 @@ def _extract_products(text: str) -> List[Product]:
         item_name = match.group(1).strip()
         item_type = match.group(2).lower() if match.group(2) else ''
         item_quantity = int(match.group(3)) if match.group(3).isdecimal() else _words_to_number(match.group(3))
-        print(item_name, item_quantity)
+        
         # Clean up item name (remove extra spaces)
         item_name = ' '.join(item_name.split())
         
@@ -143,7 +143,8 @@ if __name__ == "__main__":
         #'Paracetamol syrup quantity 2 Insulin injection quantity 3 Total cost 500',
         #'Aspirin tablet quantity 5 Vitamin C tablet quantity 10 Total price 250',
         #'Cough syrup quantity 1 Napa tablet quantity 10 Napa tablet quantity 5 Total cost Nine eight seven',
-        'Insulin injection Quantity 2 Insulin injection Quantity One Total cost Two three five six'
+        #'Insulin injection Quantity 2 Insulin injection Quantity One Total cost Two three five six taka'
+        'Nava tablet quantity 10 total price $20'
     ]
     
     for text in test_cases:

@@ -73,63 +73,16 @@ const SidebarMenu: React.FC = () => {
             <IonLabel>Navigation</IonLabel>
           </IonListHeader>
 
-          {/* Home / Dashboard */}
-          <IonMenuToggle>
-            <IonItem button onClick={() => history.push('/tabs/book')}>
-              <IonIcon icon={homeOutline} slot="start" />
-              <IonLabel>Home</IonLabel>
-            </IonItem>
-          </IonMenuToggle>
-
-          {/* Book Appointment */}
-          <IonMenuToggle>
-            <IonItem button onClick={() => history.push('/tabs/book')}>
-              <IonIcon icon={calendarOutline} slot="start" />
-              <IonLabel>Book Appointment</IonLabel>
-            </IonItem>
-          </IonMenuToggle>
-
-          {/* My Appointments */}
-          <IonMenuToggle>
-            <IonItem button onClick={() => history.push('/tabs/appointments')}>
-              <IonIcon icon={listOutline} slot="start" />
-              <IonLabel>
-                {isPatient ? 'My Appointments' : 'Appointments'}
-              </IonLabel>
-            </IonItem>
-          </IonMenuToggle>
-
           {/* Voice Assistant */}
           <IonMenuToggle>
-            <IonItem button onClick={() => history.push('/tabs/assistant')}>
+            <IonItem button onClick={() => history.push('/assistant')}>
               <IonIcon icon={micOutline} slot="start" />
               <IonLabel>Voice Assistant</IonLabel>
             </IonItem>
           </IonMenuToggle>
         </IonList>
 
-        {/* Doctor Section */}
-        <RoleGuard allowedRoles={['doctor', 'admin']}>
-          <IonList>
-            <IonListHeader>
-              <IonLabel>Medical Staff</IonLabel>
-            </IonListHeader>
 
-            <IonMenuToggle>
-              <IonItem button>
-                <IonIcon icon={peopleOutline} slot="start" />
-                <IonLabel>Patient List</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
-
-            <IonMenuToggle>
-              <IonItem button>
-                <IonIcon icon={medkitOutline} slot="start" />
-                <IonLabel>My Schedule</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
-          </IonList>
-        </RoleGuard>
 
         {/* Admin Section */}
         <RoleGuard allowedRoles="admin">
@@ -145,7 +98,6 @@ const SidebarMenu: React.FC = () => {
                 <IonLabel color="warning">
                   <strong>Register New User</strong>
                 </IonLabel>
-                <IonBadge color="warning" slot="end">Admin</IonBadge>
               </IonItem>
             </IonMenuToggle>
 
@@ -172,28 +124,7 @@ const SidebarMenu: React.FC = () => {
           </IonList>
         </RoleGuard>
 
-        {/* Receptionist Section */}
-        <RoleGuard allowedRoles={['receptionist', 'admin']}>
-          <IonList>
-            <IonListHeader>
-              <IonLabel>Reception</IonLabel>
-            </IonListHeader>
 
-            <IonMenuToggle>
-              <IonItem button>
-                <IonIcon icon={calendarOutline} slot="start" />
-                <IonLabel>Manage Appointments</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
-
-            <IonMenuToggle>
-              <IonItem button>
-                <IonIcon icon={peopleOutline} slot="start" />
-                <IonLabel>Check-in Patients</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
-          </IonList>
-        </RoleGuard>
 
         {/* Account Section */}
         <IonList>
@@ -236,7 +167,7 @@ const SidebarMenu: React.FC = () => {
         {/* Footer Note */}
         <div style={{ padding: '16px', textAlign: 'center' }}>
           <IonNote>
-            <small>Appointment Management System</small>
+            <small>Data Management System</small>
           </IonNote>
         </div>
       </IonContent>

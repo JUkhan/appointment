@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserRole(role);
 
       // Navigate to main app
-      history.push('/tabs/book');
+      history.push('/assistant');
     } catch (error: any) {
       console.error('Login error:', error);
       throw new Error(error.response?.data?.message || 'Login failed');
@@ -97,7 +97,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       data.client_id = await storageService.getItem(CLIENT_ID) || undefined;
       await apiService.register(data);
       // Registration successful, redirect to login
-      history.push('/login');
+      if (!isAuthenticated) {
+        history.push('/login');
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       throw new Error(error.response?.data?.message || 'Registration failed');

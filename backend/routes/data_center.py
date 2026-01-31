@@ -192,6 +192,18 @@ def delete_client(client_id):
 
 # ==================== DATA USER ROUTES ====================
 
+@app.route('/api/system-settings/<client_id>', methods=['GET'])
+def system_settings(client_id):
+    """Get all users for a specific client"""
+    try:
+        # Verify client exists
+        client = Client.query.get(client_id)
+        if not client:
+            return jsonify({'is_success': False}), 200
+        return jsonify({'is_success': True}), 200
+    except Exception as e:
+      return jsonify({'error': str(e)}), 500
+    
 @app.route('/api/clients/<client_id>/users', methods=['GET'])
 @jwt_required()
 def get_users_by_client(client_id):
@@ -413,7 +425,7 @@ def create_transaction():
         data = request.get_json()
 
         # Validate required fields
-        required_fields = ['client_id', 'user_id', 'products']
+        required_fields = ['client_id', 'user_text']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'{field} is required'}), 400
@@ -422,36 +434,34 @@ def create_transaction():
         client = Client.query.get(data['client_id'])
         if not client:
             return jsonify({'error': 'Client not found'}), 404
-
-        user = DataUser.query.get(data['user_id'])
+        
+        user_id = get_jwt_identity()
+        print(user_id)
+        user = DataUser.query.get(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
-        products, price = parse_products(data['products'])
+        print(data['user_text'])
+        products, price = parse_products(data['user_text'])
+        print(price, products)
         # Create new transaction
         transaction = Transaction(
             id = str(uuid.uuid4()),
             client_id=data['client_id'],
-            user_id=data['user_id'],
+            user_id=user_id,
             price=price,
             latitude=data.get('latitude'),
             longitude=data.get('longitude')
         )
         transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it.item_name, item_type=it.item_type, quantity=it.item_quantity) for it in products]
+        
         db.session.add(transaction)
         db.session.bulk_save_objects(transactional_data)
         db.session.commit()
 
         return jsonify({
-            'message': 'Transaction created successfully',
-            'transaction': {
-                'id': transaction.id,
-                'client_id': transaction.client_id,
-                'user_id': transaction.user_id,
-                'price': float(transaction.price),
-                'latitude': float(transaction.latitude) if transaction.latitude else None,
-                'longitude': float(transaction.longitude) if transaction.longitude else None,
-                'created_at': transaction.created_at.isoformat()
-            }
+                'user_text': data['user_text'],
+                'llm_response': 'Successfully done. You are brilliant.',
+            
         }), 201
 
     except Exception as e:
