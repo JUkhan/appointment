@@ -95,7 +95,7 @@ def extract_medicine_price_patterns(text):
 
 
 
-def extract_medicine_patterns(text):
+def extract_medicine_patterns(text:str):
     """
     Extract medicine patterns from text.
     Pattern: medicine_name [tablet|syrup|powder]? quantity digit+|one-nine
@@ -107,13 +107,13 @@ def extract_medicine_patterns(text):
     Returns:
         List of dictionaries containing extracted patterns
     """
-    price, text = extract_medicine_price_patterns(text)
+    price, text = extract_medicine_price_patterns(text.lower())
     
     # First pattern: matches quantity WITH a number
-    pattern_with_number = r'(\w+)\s+(tablet|syrup|powder|injection)?\s*quantity\s+((?:(?!quantity)\S+\s+)*?)(\d+|one|two|three|four|five|six|seven|eight|nine)\b'
+    pattern_with_number = r'(\w+)\s+(\w+)?\s*quantity\s+((?:(?!quantity)\S+\s+)*?)(\d+|one|two|three|four|five|six|seven|eight|nine)\b'
     
     # Second pattern: matches quantity WITHOUT a number (up to next medicine or end)
-    pattern_without_number = r'(\w+)\s+(tablet|syrup|powder|injection)?\s*quantity\s+(?!(?:(?!quantity)\S+\s+)*?(?:\d+|one|two|three|four|five|six|seven|eight|nine)\b)'
+    pattern_without_number = r'(\w+)\s+(\w+)?\s*quantity\s+(?!(?:(?!quantity)\S+\s+)*?(?:\d+|one|two|three|four|five|six|seven|eight|nine)\b)'
     
     results = []
     
@@ -172,8 +172,8 @@ if __name__ == "__main__":
         #'Aspirin tablet quantity 5 Vitamin C tablet quantity 10 Total price 250',
         #'Cough syrup quantity 1 Napa tablet quantity 10 Napa tablet quantity 5 Total cost Nine eight seven',
         #'Insulin injection Quantity 2 Insulin injection Quantity One Total cost Two three five six taka'
-        'Napa tablet quantity sd seven minarel tablet quantity  total price Uh nine dhaka',
-        'Napa tablet quantity 10 Mineral tablet quantity ah 6 total price 34'
+        #'Napa tablet quantity sd seven minarel tablet quantity  total price Uh nine dhaka',
+        'Nava quantity 5 Napa Napa Napa quantity 5 Napa syrup Quantity Two Total price 97'
     ]
     
     for text in test_cases:

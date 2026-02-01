@@ -22,6 +22,7 @@ import remarkGfm from 'remark-gfm';
 import apiService from '../services/apiService';
 import type { Message } from '../types';
 import { stripMarkdown } from '../utils/markdown';
+import { set } from 'date-fns';
 
 // Extend Window interface for Web Speech API
 declare global {
@@ -44,6 +45,7 @@ const VoiceAssistantPage: React.FC = () => {
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
   const [interimText, setIntrimText] = useState('');
+  const [continuedText, setContinuedText] = useState('');
 
   useEffect(() => {
     initializeSpeechRecognition();
@@ -81,7 +83,9 @@ const VoiceAssistantPage: React.FC = () => {
       recognition.onstart = () => {
         setIsRecording(true);
         //setRecordingDuration(0);
-        transcriptRef.current = ''; // Reset transcript
+        if (!isContinued) {
+          transcriptRef.current = ''; // Reset transcript
+        }
         // Start duration counter
         // recordingIntervalRef.current = setInterval(() => {
         //   setRecordingDuration((prev) => prev + 1);
@@ -94,19 +98,24 @@ const VoiceAssistantPage: React.FC = () => {
         // Accumulate all final results
         let finalTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
+          const text = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript + ' ';
+            finalTranscript += text + ' ';
           } else {
-            interim += event.results[i][0].transcript + ' ';
-
+            interim += text + ' ';
           }
-        }
-        if (interim) {
-          setIntrimText(transcriptRef.current + ' ' + interim);
         }
         if (finalTranscript) {
           transcriptRef.current = finalTranscript.trim();
         }
+        let text = '';
+        if (transcriptRef.current) {
+          text += transcriptRef.current;
+        }
+        if (interim) {
+          text += interim;
+        }
+        setIntrimText(text.trim());
       };
 
       recognition.onerror = (event: any) => {
@@ -201,12 +210,15 @@ const VoiceAssistantPage: React.FC = () => {
     setIsProcessing(true);
     setIntrimText('');
     try {
+      text = continuedText ? continuedText + ' ' + text : text;
+      setContinuedText('');
       // Add user message
       const userMessage: Message = {
         id: Date.now().toString(),
         type: 'user',
         text: text,
         timestamp: new Date(),
+        continued: false,
       };
       setMessages((prev) => [...prev, userMessage]);
 
@@ -235,6 +247,10 @@ const VoiceAssistantPage: React.FC = () => {
 
       setToastMessage(errorMessage);
       setShowToast(true);
+      setMessages((prev) => [...prev.slice(0, -1), {
+        ...prev[prev.length - 1],
+        continued: true,
+      }]);
     } finally {
       setIsProcessing(false);
     }
@@ -267,6 +283,16 @@ const VoiceAssistantPage: React.FC = () => {
       startRecording();
     }
   };
+  const handleToggleRecordingContinued = () => {
+    startRecording();
+    const lastMessage = messages[messages.length - 1];
+    setContinuedText(lastMessage ? lastMessage.text : '');
+    console.log('Continuing with transcript:', transcriptRef.current);
+    // Remove continued flag from last message
+    setMessages((prev) => prev.map(msg =>
+      msg.continued ? { ...msg, continued: false } : msg
+    ));
+  }
 
   return (
     <IonPage>
@@ -328,7 +354,16 @@ const VoiceAssistantPage: React.FC = () => {
                         {message.text}
                       </ReactMarkdown>
                     ) : (
-                      <p>{message.text}</p>
+                      <p>{message.text}
+                        {message.continued ? (<IonFab slot="fixed">
+                          <IonFabButton
+                            onClick={handleToggleRecordingContinued}
+                            color='danger'
+                          >
+                            <IonIcon icon={micOutline} />
+                          </IonFabButton>
+                        </IonFab>) : ''}
+                      </p>
                     )}
                   </div>
                   <div
@@ -411,7 +446,7 @@ const VoiceAssistantPage: React.FC = () => {
                         lineHeight: '1.5',
                       }}
                     >
-                      "{interimText}"
+                      "{continuedText ? continuedText + ' ' + interimText : interimText}"
                     </p>
                   </IonText>
                 </div>

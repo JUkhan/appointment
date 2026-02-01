@@ -57,6 +57,7 @@ export interface Message {
   type: 'user' | 'assistant';
   text: string;
   timestamp: Date;
+  continued?: boolean;
 }
 
 export interface CreateAppointmentData {

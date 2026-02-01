@@ -460,7 +460,7 @@ def create_transaction():
             longitude=data.get('longitude')
         )
         
-        transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it.name, item_type=it.type, quantity=it.quantity) for it in merge_duplicate_products_sum(products)]
+        transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it.name, item_type=str(it.type), quantity=it.quantity) for it in merge_duplicate_products_sum(products)]
         
         db.session.add(transaction)
         db.session.bulk_save_objects(transactional_data)
