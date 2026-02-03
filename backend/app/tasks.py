@@ -26,7 +26,8 @@ def check_expired_subscriptions(self):
             for sub in expired_subs:
                 sub.is_active = False
                 count += 1
-                logger.info(f"Deactivated subscription {sub.id} for user {sub.user.email}")
+                client = sub.clients
+                logger.info(f"Deactivated subscription {sub.id} for client {client.email}")
             
             db.session.commit()
             logger.info(f"Successfully deactivated {count} expired subscriptions")
@@ -43,11 +44,12 @@ def send_expiration_reminder():
     try:
         from app import create_app, db
         from app.models import Subscription
-        
+        from app.utils.email import send_subscription_expiration_reminder
+
         app = create_app()
         with app.app_context():
             reminder_date = datetime.utcnow() + timedelta(days=2)
-            
+
             upcoming_expirations = Subscription.query.filter(
                 and_(
                     Subscription.end_date <= reminder_date,
@@ -55,15 +57,28 @@ def send_expiration_reminder():
                     Subscription.is_active == True
                 )
             ).all()
-            
+
             count = 0
+            failed = 0
             for sub in upcoming_expirations:
-                logger.info(f"Reminder: Subscription expires soon for {sub.user.email}")
-                # TODO: Implement email sending
-                count += 1
-            
-            return f"Sent {count} reminder emails"
-    
+                client = sub.clients
+                days_remaining = (sub.end_date - datetime.utcnow()).days
+
+                # Send email reminder
+                if send_subscription_expiration_reminder(
+                    client_email=client.email,
+                    business_name=client.business_name,
+                    days_remaining=days_remaining,
+                    end_date=sub.end_date
+                ):
+                    count += 1
+                    logger.info(f"Sent reminder to {client.email} for subscription {sub.id}")
+                else:
+                    failed += 1
+                    logger.warning(f"Failed to send reminder to {client.email}")
+
+            return f"Sent {count} reminder emails ({failed} failed)"
+
     except Exception as e:
         logger.error(f"Error sending reminders: {str(e)}")
         raise
