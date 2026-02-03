@@ -1,32 +1,34 @@
-# Backend Dockerfile
+# Dockerfile
 FROM python:3.11-slim
 
-# Set working directory
-WORKDIR /app
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    ffmpeg \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Create working directory
+WORKDIR /app
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p temp_audio instance
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
 
 # Expose port
-EXPOSE 5000
+EXPOSE 8000
 
-# Set environment variables
-ENV FLASK_APP=app.py
-ENV PYTHONUNBUFFERED=1
-
-# Run the application with gunicorn using config file
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
+# Default command (override in docker-compose)
+CMD ["gunicorn", "--config", "gunicorn_config.py", "wsgi:app"]

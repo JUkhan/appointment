@@ -1,15 +1,14 @@
-from flask import jsonify, request
+from flask import jsonify, request, Blueprint
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from flask_app import app
-from db import db
-from models import Client, DataUser, Transaction, TransactionalData
-from datetime import datetime
-from routes.parse_product import extract_medicine_patterns, merge_duplicate_products_sum
+from app import db
+from app.models import Client, DataUser, Transaction, TransactionalData
+from app.routes.parse_product import extract_medicine_patterns, merge_duplicate_products_sum
 import uuid
 
+api = Blueprint('api', __name__)
 # ==================== CLIENT ROUTES ====================
 
-@app.route('/api/clients', methods=['POST'])
+@api.route('/api/clients', methods=['POST'])
 def create_client():
     """Create a new client"""
     try:
@@ -66,7 +65,7 @@ def create_client():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/clients', methods=['GET'])
+@api.route('/api/clients', methods=['GET'])
 @jwt_required()
 def get_clients():
     """Get all clients"""
@@ -90,7 +89,7 @@ def get_clients():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/clients/<client_id>', methods=['GET'])
+@api.route('/api/clients/<client_id>', methods=['GET'])
 @jwt_required()
 def get_client(client_id):
     """Get a specific client by ID"""
@@ -115,7 +114,7 @@ def get_client(client_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/clients/<client_id>', methods=['PUT'])
+@api.route('/api/clients/<client_id>', methods=['PUT'])
 @jwt_required()
 def update_client(client_id):
     """Update a client"""
@@ -170,7 +169,7 @@ def update_client(client_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/clients/<client_id>', methods=['DELETE'])
+@api.route('/api/clients/<client_id>', methods=['DELETE'])
 @jwt_required()
 def delete_client(client_id):
     """Delete a client"""
@@ -192,7 +191,7 @@ def delete_client(client_id):
 
 # ==================== DATA USER ROUTES ====================
 
-@app.route('/api/system-settings/<client_id>', methods=['GET'])
+@api.route('/api/system-settings/<client_id>', methods=['GET'])
 def system_settings(client_id):
     """Get all users for a specific client"""
     try:
@@ -204,7 +203,7 @@ def system_settings(client_id):
     except Exception as e:
       return jsonify({'error': str(e)}), 500
     
-@app.route('/api/clients/<client_id>/users', methods=['GET'])
+@api.route('/api/clients/<client_id>/users', methods=['GET'])
 @jwt_required()
 def get_users_by_client(client_id):
     """Get all users for a specific client"""
@@ -234,7 +233,7 @@ def get_users_by_client(client_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/data-users', methods=['POST'])
+@api.route('/api/data-users', methods=['POST'])
 @jwt_required()
 def create_data_user():
     """Create a new data user"""
@@ -287,7 +286,7 @@ def create_data_user():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/data-users', methods=['GET'])
+@api.route('/api/data-users', methods=['GET'])
 @jwt_required()
 def get_data_users():
     """Get all data users"""
@@ -314,7 +313,7 @@ def get_data_users():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/data-users/<user_id>', methods=['GET'])
+@api.route('/api/data-users/<user_id>', methods=['GET'])
 @jwt_required()
 def get_data_user(user_id):
     """Get a specific data user by ID"""
@@ -336,7 +335,7 @@ def get_data_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/data-users/<user_id>', methods=['PUT'])
+@api.route('/api/data-users/<user_id>', methods=['PUT'])
 @jwt_required()
 def update_data_user(user_id):
     """Update a data user"""
@@ -395,7 +394,7 @@ def update_data_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/data-users/<user_id>', methods=['DELETE'])
+@api.route('/api/data-users/<user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_data_user(user_id):
     """Delete a data user"""
@@ -417,7 +416,7 @@ def delete_data_user(user_id):
 
 # ==================== TRANSACTION ROUTES ====================
 
-@app.route('/api/transactions', methods=['POST'])
+@api.route('/api/transactions', methods=['POST'])
 @jwt_required()
 def create_transaction():
     """Create a new transaction"""
@@ -477,7 +476,7 @@ def create_transaction():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/transactions', methods=['GET'])
+@api.route('/api/transactions', methods=['GET'])
 @jwt_required()
 def get_transactions():
     """Get all transactions"""
@@ -511,7 +510,7 @@ def get_transactions():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/transactions/<transaction_id>', methods=['GET'])
+@api.route('/api/transactions/<transaction_id>', methods=['GET'])
 @jwt_required()
 def get_transaction(transaction_id):
     """Get a specific transaction by ID"""
@@ -535,7 +534,7 @@ def get_transaction(transaction_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/transactions/<transaction_id>', methods=['PUT'])
+@api.route('/api/transactions/<transaction_id>', methods=['PUT'])
 @jwt_required()
 def update_transaction(transaction_id):
     """Update a transaction"""
@@ -585,7 +584,7 @@ def update_transaction(transaction_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/transactions/<transaction_id>', methods=['DELETE'])
+@api.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction(transaction_id):
     """Delete a transaction"""
@@ -607,7 +606,7 @@ def delete_transaction(transaction_id):
 
 # ==================== TRANSACTIONAL DATA ROUTES ====================
 
-@app.route('/api/transactional-data', methods=['POST'])
+@api.route('/api/transactional-data', methods=['POST'])
 @jwt_required()
 def create_transactional_data():
     """Create new transactional data"""
@@ -652,7 +651,7 @@ def create_transactional_data():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/transactional-data', methods=['GET'])
+@api.route('/api/transactional-data', methods=['GET'])
 @jwt_required()
 def get_transactional_data():
     """Get all transactional data"""
@@ -679,7 +678,7 @@ def get_transactional_data():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/transactional-data/<data_id>', methods=['GET'])
+@api.route('/api/transactional-data/<data_id>', methods=['GET'])
 @jwt_required()
 def get_single_transactional_data(data_id):
     """Get specific transactional data by ID"""
@@ -701,7 +700,7 @@ def get_single_transactional_data(data_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/transactional-data/<data_id>', methods=['PUT'])
+@api.route('/api/transactional-data/<data_id>', methods=['PUT'])
 @jwt_required()
 def update_transactional_data(data_id):
     """Update transactional data"""
@@ -744,7 +743,7 @@ def update_transactional_data(data_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/transactional-data/<data_id>', methods=['DELETE'])
+@api.route('/api/transactional-data/<data_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transactional_data(data_id):
     """Delete transactional data"""

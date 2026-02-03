@@ -1,29 +1,13 @@
-from flask import request, jsonify
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, create_refresh_token, get_jwt_identity
-from flask_app import app
-from db import db
-from models import  DataUser, Client
+from flask import request, jsonify, Blueprint
+from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
+from app import db
+from app.models import  DataUser, Client
 
-jwt = JWTManager(app)
-
-# JWT Error handlers
-@jwt.expired_token_loader
-def expired_token_callback(jwt_header, jwt_payload):
-    return jsonify({'error': 'Token has expired'}), 401
-
-@jwt.invalid_token_loader
-def invalid_token_callback(error):
-    return jsonify({'error': 'Invalid token'}), 422
-
-@jwt.unauthorized_loader
-def unauthorized_callback(error):
-    return jsonify({'error': 'Authorization token is required'}), 422
-
-
+auth = Blueprint('auth', __name__)
 
 # Authentication Routes
 
-@app.route('/register', methods=['POST'])
+@auth.route('/register', methods=['POST'])
 def register():
     try:
         data = request.get_json()
@@ -46,7 +30,7 @@ def register():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/login', methods=['POST'])
+@auth.route('/login', methods=['POST'])
 def login():
     try:
         data = request.get_json()
@@ -77,7 +61,7 @@ def login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/refresh', methods=['POST'])
+@auth.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
     """
