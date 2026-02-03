@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from app import db
 from app.models import Client, Subscription
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_jwt_extended import jwt_required
 
 api = Blueprint('subscription', __name__)
@@ -10,7 +10,7 @@ api = Blueprint('subscription', __name__)
 @jwt_required()
 def subscribe():
     data = request.get_json()
-    client_id = data.get('user_id')
+    client_id = data.get('client_id')
     plan = data.get('plan')
     
     if plan not in ['week', 'month', '3month', '6month', 'year']:
@@ -29,7 +29,7 @@ def subscribe():
     subscription = Subscription(
         client_id=client_id,
         plan=plan,
-        start_date=datetime.now(datetime.timezone.utc),
+        start_date=datetime.utcnow(),
         end_date=end_date,
         is_active=True
     )
@@ -45,7 +45,7 @@ def subscribe():
         'end_date': end_date.isoformat()
     }), 201
 
-@api.route('/subscription/status/<str:client_id>', methods=['GET'])
+@api.route('/subscription/status/<string:client_id>', methods=['GET'])
 @jwt_required()
 def get_subscription_status(client_id):
     client = Client.query.get(client_id)
@@ -59,17 +59,17 @@ def get_subscription_status(client_id):
         }), 200
     
     sub = client.subscription
-    is_active = sub.is_active and sub.end_date > datetime.now(datetime.timezone.utc)
+    is_active = sub.is_active and sub.end_date > datetime.utcnow()
     
     return jsonify({
         'active': is_active,
         'plan': sub.plan,
         'start_date': sub.start_date.isoformat(),
         'end_date': sub.end_date.isoformat(),
-        'days_remaining': max(0, (sub.end_date - datetime.now(datetime.timezone.utc)).days) if is_active else 0
+        'days_remaining': max(0, (sub.end_date - datetime.utcnow()).days) if is_active else 0
     }), 200
 
-@api.route('/subscription/cancel/<str:client_id>', methods=['POST'])
+@api.route('/subscription/cancel/<string:client_id>', methods=['POST'])
 @jwt_required()
 def cancel_subscription(client_id):
     client = Client.query.get(client_id)

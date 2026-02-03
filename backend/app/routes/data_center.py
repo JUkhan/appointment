@@ -1,7 +1,8 @@
+from datetime import datetime, timezone
 from flask import jsonify, request, Blueprint
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from app.models import Client, DataUser, Transaction, TransactionalData
+from app.models import Client, DataUser, Transaction, TransactionalData, Subscription
 from app.routes.parse_product import extract_medicine_patterns, merge_duplicate_products_sum
 import uuid
 
@@ -32,7 +33,6 @@ def create_client():
             address=data['address'],
             email=data['email'],
             mobile=data['mobile'],
-            is_active=data.get('is_active', True),
             modules=data.get('modules', 'basic')
         )
         data_user = DataUser(
@@ -42,8 +42,18 @@ def create_client():
             role='admin'
         )
         data_user.set_password('admin123')
+
+        end_date = Subscription.calculate_end_date('week')
+        subscription = Subscription(
+            client_id=client.id,
+            plan='week',
+            start_date=datetime.now(timezone.utc),
+            end_date=end_date,
+            is_active=True
+        )
         db.session.add(client)
         db.session.add(data_user)
+        db.session.add(subscription)
         db.session.commit()
 
         return jsonify({
@@ -54,7 +64,6 @@ def create_client():
                 'address': client.address,
                 'email': client.email,
                 'mobile': client.mobile,
-                'is_active': client.is_active,
                 'modules': client.modules,
                 'created_at': client.created_at.isoformat()
             }
@@ -79,7 +88,6 @@ def get_clients():
                 'address': client.address,
                 'email': client.email,
                 'mobile': client.mobile,
-                'is_active': client.is_active,
                 'modules': client.modules,
                 'created_at': client.created_at.isoformat()
             } for client in clients]
@@ -105,7 +113,6 @@ def get_client(client_id):
             'address': client.address,
             'email': client.email,
             'mobile': client.mobile,
-            'is_active': client.is_active,
             'modules': client.modules,
             'created_at': client.created_at.isoformat()
         }), 200
@@ -143,8 +150,7 @@ def update_client(client_id):
             client.email = data['email']
         if 'mobile' in data:
             client.mobile = data['mobile']
-        if 'is_active' in data:
-            client.is_active = data['is_active']
+        
         if 'modules' in data:
             client.modules = data['modules']
 
@@ -158,7 +164,6 @@ def update_client(client_id):
                 'address': client.address,
                 'email': client.email,
                 'mobile': client.mobile,
-                'is_active': client.is_active,
                 'modules': client.modules,
                 'created_at': client.created_at.isoformat()
             }

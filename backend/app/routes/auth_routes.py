@@ -2,6 +2,7 @@ from flask import request, jsonify, Blueprint
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 from app import db
 from app.models import  DataUser, Client
+from datetime import datetime, timezone
 
 auth = Blueprint('auth', __name__)
 
@@ -43,7 +44,9 @@ def login():
         
         user = DataUser.query.filter_by(username=username, client_id=client_id).first()
         client= Client.query.get(client_id)
-        if user and user.check_password(password) and user.is_active and client.is_active:
+        sub = client.subscription
+        is_active = sub.is_active and sub.end_date > datetime.utcnow()
+        if user and user.check_password(password) and user.is_active and is_active:
             # Create both access and refresh tokens
             claims={'role':user.role, 'username':user.username}
             access_token = create_access_token(identity=str(user.id), fresh=True, additional_claims=claims)
@@ -73,7 +76,9 @@ def refresh():
         print('::::refresh:::::',current_user)
         user = DataUser.query.filter_by(id=current_user).first()
         client= Client.query.get(user.client_id)
-        if not (user.is_active or client.is_active):
+        sub = client.subscription
+        is_active = sub.is_active and sub.end_date > datetime.utcnow()
+        if not (user.is_active or is_active):
             return jsonify({'error': str(e)}), 500
         claims={'role':user.role, 'username':user.username}
         new_access_token = create_access_token(identity=current_user, fresh=False, additional_claims=claims)

@@ -17,7 +17,7 @@ def check_expired_subscriptions(self):
         with app.app_context():
             expired_subs = Subscription.query.filter(
                 and_(
-                    Subscription.end_date <= datetime.now(datetime.timezone.utc),
+                    Subscription.end_date <= datetime.utcnow(),
                     Subscription.is_active == True
                 )
             ).all()
@@ -46,12 +46,12 @@ def send_expiration_reminder():
         
         app = create_app()
         with app.app_context():
-            reminder_date = datetime.now(datetime.timezone.utc) + timedelta(days=2)
+            reminder_date = datetime.utcnow() + timedelta(days=2)
             
             upcoming_expirations = Subscription.query.filter(
                 and_(
                     Subscription.end_date <= reminder_date,
-                    Subscription.end_date > datetime.now(datetime.timezone.utc),
+                    Subscription.end_date > datetime.utcnow(),
                     Subscription.is_active == True
                 )
             ).all()
