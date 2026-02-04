@@ -18,7 +18,7 @@ import type {
   UpdateDataUserRequest,
   UpdateDataUserResponse,
 } from '../types';
-
+import { parseProducts } from '../utils/parseProduct';
 // Flag to prevent multiple concurrent refresh requests
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
@@ -276,9 +276,16 @@ export const apiService = {
    */
   async processText(text: string, language: string): Promise<ProcessTextResponse> {
     const clientId = await storageService.getItem(CLIENT_ID);
+    const parsedProducts = parseProducts(text).filter(it => it.quantity > 0).map(product => {
+      product.type ??= 'None';
+      return product;
+    });
+    console.log('Parsed Products:', parsedProducts);
     const response = await apiClient.post<ProcessTextResponse>(API_ENDPOINTS.PROCESS_TEXT, {
-      'user_text': text,
+      //'user_text': text,
       'client_id': clientId,
+      'products': parsedProducts,
+      'total_price': parsedProducts.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0),
       language
     });
     return response.data;

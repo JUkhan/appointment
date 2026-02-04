@@ -49,6 +49,7 @@ class TransactionalData(db.Model):
     item_name = db.Column(db.String(20), nullable=False)
     item_type = db.Column(db.String(10), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Numeric(10, 2), nullable=False)
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'

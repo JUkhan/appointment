@@ -15,6 +15,9 @@ import {
   IonButtons,
   IonMenuButton,
   IonButton,
+  IonItem,
+  IonLabel,
+  IonInput,
 } from '@ionic/react';
 import { micOutline, stopOutline } from 'ionicons/icons';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
@@ -49,6 +52,7 @@ const VoiceAssistantPage: React.FC = () => {
   const [continuedText, setContinuedText] = useState('');
   const [totalPrice, setTotalPrice] = useState('Total');
   const [products, setProducts] = useState<Product[]>([]);
+  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
 
   useEffect(() => {
     initializeSpeechRecognition();
@@ -215,6 +219,7 @@ const VoiceAssistantPage: React.FC = () => {
     setIsProcessing(true);
     setIntrimText('');
     setTotalPrice('Total');
+    setProducts([]);
     try {
       text = continuedText ? continuedText + ' ' + text : text;
       setContinuedText('');
@@ -332,6 +337,39 @@ const VoiceAssistantPage: React.FC = () => {
       startRecording();
     }
   };
+
+  const handleProductClick = (index: number) => {
+    setEditingProductIndex(index);
+  };
+
+  const handleProductFieldChange = (index: number, field: keyof Product, value: string | number) => {
+    const updatedProducts = [...products];
+    if (field === 'quantity' || field === 'unitPrice') {
+      updatedProducts[index] = { ...updatedProducts[index], [field]: Number(value) };
+    } else {
+      updatedProducts[index] = { ...updatedProducts[index], [field]: value };
+    }
+    setProducts(updatedProducts);
+  };
+
+  const handleProductEditDone = () => {
+    setEditingProductIndex(null);
+    // Recalculate total when editing is done
+    let total = 0;
+    const text: string[] = [];
+    products.forEach(product => {
+      total += product.unitPrice * product.quantity;
+      const typeText = product.type ? ` type ${product.type}` : '';
+      text.push(`${product.productName}${typeText} quantity ${product.quantity} unit price ${product.unitPrice}`);
+    });
+    setTotalPrice(`Total: ${total.toFixed(2)} taka`);
+    transcriptRef.current = text.join(' ');
+    setIntrimText(transcriptRef.current);
+    setContinuedText('');
+  };
+  const onSave = () => {
+    stopRecording();
+  }
 
   return (
     <IonPage>
@@ -464,6 +502,79 @@ const VoiceAssistantPage: React.FC = () => {
                     🎙️ Recognizing...
                   </h2>
                 </IonText>
+                {/**make product list editable */}
+                {products.length > 0 && (
+                  <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
+                    <IonText>
+                      <h3 style={{ marginBottom: '0.5rem' }}>Products (click to edit):</h3>
+                    </IonText>
+                    {products.map((product, index) => (
+                      <div key={index} style={{ marginBottom: '0.5rem' }}>
+                        {editingProductIndex === index ? (
+                          <IonCard style={{ margin: '0.5rem 0', backgroundColor: 'var(--ion-color-light-shade)' }}>
+                            <IonCardContent>
+                              <IonItem>
+                                <IonLabel position="stacked">Product Name</IonLabel>
+                                <IonInput
+                                  value={product.productName}
+                                  onIonInput={(e) => handleProductFieldChange(index, 'productName', e.detail.value!)}
+                                />
+                              </IonItem>
+                              <IonItem>
+                                <IonLabel position="stacked">Type</IonLabel>
+                                <IonInput
+                                  value={product.type || ''}
+                                  onIonInput={(e) => handleProductFieldChange(index, 'type', e.detail.value!)}
+                                />
+                              </IonItem>
+                              <IonItem>
+                                <IonLabel position="stacked">Quantity</IonLabel>
+                                <IonInput
+                                  type="number"
+                                  value={product.quantity}
+                                  onIonInput={(e) => handleProductFieldChange(index, 'quantity', e.detail.value!)}
+                                />
+                              </IonItem>
+                              <IonItem>
+                                <IonLabel position="stacked">Unit Price</IonLabel>
+                                <IonInput
+                                  type="number"
+                                  value={product.unitPrice}
+                                  onIonInput={(e) => handleProductFieldChange(index, 'unitPrice', e.detail.value!)}
+                                />
+                              </IonItem>
+                              <IonButton
+                                onClick={handleProductEditDone}
+                                fill="solid"
+                                size="small"
+                                style={{ marginTop: '0.5rem' }}
+                              >
+                                Done
+                              </IonButton>
+                            </IonCardContent>
+                          </IonCard>
+                        ) : (
+                          <IonCard
+                            style={{ margin: '0.5rem 0', cursor: 'pointer' }}
+                            onClick={() => handleProductClick(index)}
+                          >
+                            <IonCardContent>
+                              <IonText>
+                                <p style={{ margin: 0 }}>
+                                  <strong>{product.productName}</strong>
+                                  {product.type && ` (${product.type})`}
+                                  <br />
+                                  Quantity: {product.quantity} | Unit Price: {product.unitPrice} |
+                                  Subtotal: {(product.quantity * product.unitPrice).toFixed(2)}
+                                </p>
+                              </IonText>
+                            </IonCardContent>
+                          </IonCard>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div
                   style={{
                     backgroundColor: 'var(--ion-color-light)',
@@ -494,6 +605,7 @@ const VoiceAssistantPage: React.FC = () => {
               <IonButton onClick={onStartStop} fill="clear">{isRecording ? 'Stop' : 'Start'}</IonButton>
               <IonButton onClick={onCalculateTotal} fill="clear">{totalPrice}</IonButton>
               <IonButton onClick={onProductEdit} fill="clear">Edit</IonButton>
+              <IonButton onClick={onSave} fill="clear">Save</IonButton>
             </IonCard>
           </div>
         )}

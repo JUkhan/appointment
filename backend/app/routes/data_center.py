@@ -429,7 +429,7 @@ def create_transaction():
         data = request.get_json()
 
         # Validate required fields
-        required_fields = ['client_id', 'user_text']
+        required_fields = ['client_id', 'products', 'total_price']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'{field} is required'}), 400
@@ -444,34 +444,35 @@ def create_transaction():
         user = DataUser.query.get(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
-        print(data['user_text'])
-        price, products = extract_medicine_patterns(data['user_text'])
-        print(price, products)
-        if(not products):
-            return jsonify({'error': 'Products are empty.'}), 500
-        if(not price):
-            return jsonify({'error': 'Total price not found.'}), 500
-        zero_q_p=[it for it in products if it.quantity==0]
-        if zero_q_p:
-            return jsonify({'error': f'{zero_q_p[0].name} has quantity 0'}), 500
+        print(data['products'][0]['productName'])
+        #[{productName: "napa", quantity: 30, unitPrice: 1.5, type: "None"}]
+        #price, products = extract_medicine_patterns(data['user_text'])
+        #print(price, products)
+        # if(not products):
+        #     return jsonify({'error': 'Products are empty.'}), 500
+        # if(not price):
+        #     return jsonify({'error': 'Total price not found.'}), 500
+        # zero_q_p=[it for it in products if it.quantity==0]
+        # if zero_q_p:
+        #     return jsonify({'error': f'{zero_q_p[0].name} has quantity 0'}), 500
         # Create new transaction
         transaction = Transaction(
             id = str(uuid.uuid4()),
             client_id=data['client_id'],
             user_id=user_id,
-            price=price,
+            price=data['total_price'],
             latitude=data.get('latitude'),
             longitude=data.get('longitude')
         )
         
-        transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it.name, item_type=str(it.type), quantity=it.quantity) for it in merge_duplicate_products_sum(products)]
+        transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it['productName'], item_type=it['type'], quantity=it['quantity'], unit_price=it['unitPrice']) for it in data['products']]
         
         db.session.add(transaction)
         db.session.bulk_save_objects(transactional_data)
         db.session.commit()
 
         return jsonify({
-                'user_text': data['user_text'],
+                #'user_text': data['user_text'],
                 'llm_response': 'Successfully done. You are brilliant.',
             
         }), 201
