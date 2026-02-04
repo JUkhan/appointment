@@ -14,6 +14,7 @@ import {
   IonText,
   IonButtons,
   IonMenuButton,
+  IonButton,
 } from '@ionic/react';
 import { micOutline, stopOutline } from 'ionicons/icons';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
@@ -22,7 +23,7 @@ import remarkGfm from 'remark-gfm';
 import apiService from '../services/apiService';
 import type { Message } from '../types';
 import { stripMarkdown } from '../utils/markdown';
-import { set } from 'date-fns';
+import { parseProducts, type Product } from '../utils/parseProduct';
 
 // Extend Window interface for Web Speech API
 declare global {
@@ -40,19 +41,21 @@ const VoiceAssistantPage: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  //const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef<HTMLIonContentElement>(null);
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
   const [interimText, setIntrimText] = useState('');
   const [continuedText, setContinuedText] = useState('');
+  const [totalPrice, setTotalPrice] = useState('Total');
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     initializeSpeechRecognition();
     return () => {
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
+      // if (recordingIntervalRef.current) {
+      //   clearInterval(recordingIntervalRef.current);
+      // }
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -83,9 +86,9 @@ const VoiceAssistantPage: React.FC = () => {
       recognition.onstart = () => {
         setIsRecording(true);
         //setRecordingDuration(0);
-        if (!isContinued) {
-          transcriptRef.current = ''; // Reset transcript
-        }
+        // if (!isContinued) {
+        //   transcriptRef.current = ''; // Reset transcript
+        // }
         // Start duration counter
         // recordingIntervalRef.current = setInterval(() => {
         //   setRecordingDuration((prev) => prev + 1);
@@ -127,10 +130,10 @@ const VoiceAssistantPage: React.FC = () => {
         }
 
         setIsRecording(false);
-        if (recordingIntervalRef.current) {
-          clearInterval(recordingIntervalRef.current);
-          recordingIntervalRef.current = null;
-        }
+        // if (recordingIntervalRef.current) {
+        //   clearInterval(recordingIntervalRef.current);
+        //   recordingIntervalRef.current = null;
+        // }
 
         if (event.error === 'not-allowed') {
           setToastMessage('Microphone permission is required');
@@ -144,12 +147,14 @@ const VoiceAssistantPage: React.FC = () => {
       recognition.onend = () => {
         // Only set to false if we're not intentionally recording
         // This prevents auto-restart when speech pauses
-        if (!isRecording) {
-          if (recordingIntervalRef.current) {
-            clearInterval(recordingIntervalRef.current);
-            recordingIntervalRef.current = null;
-          }
-        }
+        // if (!isRecording) {
+        //   if (recordingIntervalRef.current) {
+        //     clearInterval(recordingIntervalRef.current);
+        //     recordingIntervalRef.current = null;
+        //   }
+        // }
+        setIsRecording(false);
+        console.log('------Speech recognition ended');
       };
 
       recognitionRef.current = recognition;
@@ -186,10 +191,10 @@ const VoiceAssistantPage: React.FC = () => {
       }
 
 
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-        recordingIntervalRef.current = null;
-      }
+      // if (recordingIntervalRef.current) {
+      //   clearInterval(recordingIntervalRef.current);
+      //   recordingIntervalRef.current = null;
+      // }
 
       // Process the accumulated transcript
       const text = transcriptRef.current.trim();
@@ -209,6 +214,7 @@ const VoiceAssistantPage: React.FC = () => {
   const processText = async (text: string) => {
     setIsProcessing(true);
     setIntrimText('');
+    setTotalPrice('Total');
     try {
       text = continuedText ? continuedText + ' ' + text : text;
       setContinuedText('');
@@ -293,6 +299,39 @@ const VoiceAssistantPage: React.FC = () => {
       msg.continued ? { ...msg, continued: false } : msg
     ));
   }
+
+  const onCalculateTotal = () => {
+    const text = continuedText ? continuedText + ' ' + interimText : interimText;
+    const parsedProducts = parseProducts(text);
+    let total = 0;
+    parsedProducts.forEach(product => {
+      total += product.unitPrice * product.quantity;
+    });
+    setTotalPrice(`Total: ${total.toFixed(2)} taka`);
+  }
+  const onProductEdit = () => {
+    const text = continuedText ? continuedText + ' ' + interimText : interimText;
+    const parsedProducts = parseProducts(text);
+    setProducts(parsedProducts);
+    console.log('Parsed Products:', parsedProducts);
+  };
+  const onStartStop = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      try {
+        if (recognitionRef.current && isRecording) {
+          recognitionRef.current.stop();
+        }
+      } catch (error: any) {
+        console.error('Stop recording error:', error);
+        setToastMessage('Failed to stop recording');
+        setShowToast(true);
+      }
+    } else {
+      setContinuedText(transcriptRef.current.trim());
+      startRecording();
+    }
+  };
 
   return (
     <IonPage>
@@ -450,7 +489,11 @@ const VoiceAssistantPage: React.FC = () => {
                     </p>
                   </IonText>
                 </div>
+
               </IonCardContent>
+              <IonButton onClick={onStartStop} fill="clear">{isRecording ? 'Stop' : 'Start'}</IonButton>
+              <IonButton onClick={onCalculateTotal} fill="clear">{totalPrice}</IonButton>
+              <IonButton onClick={onProductEdit} fill="clear">Edit</IonButton>
             </IonCard>
           </div>
         )}
