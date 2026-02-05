@@ -18,6 +18,7 @@ import {
   IonItem,
   IonLabel,
   IonInput,
+  IonModal,
 } from '@ionic/react';
 import { micOutline, stopOutline } from 'ionicons/icons';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
@@ -54,6 +55,7 @@ const VoiceAssistantPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
   const [mobileNumber, setMobileNumber] = useState('');
+  const [showProductModal, setShowProductModal] = useState(false);
 
   useEffect(() => {
     initializeSpeechRecognition();
@@ -319,6 +321,7 @@ const VoiceAssistantPage: React.FC = () => {
     const text = continuedText ? continuedText + ' ' + interimText : interimText;
     const parsedProducts = parseProducts(text).filter(it => it.quantity > 0);
     setProducts(parsedProducts);
+    setShowProductModal(true);
     console.log('Parsed Products:', parsedProducts, text);
   };
   const onStartStop = () => {
@@ -356,6 +359,7 @@ const VoiceAssistantPage: React.FC = () => {
 
   const handleProductEditDone = () => {
     setEditingProductIndex(null);
+    setShowProductModal(false);
     // Recalculate total when editing is done
     let total = 0;
     const text: string[] = [];
@@ -530,98 +534,6 @@ const VoiceAssistantPage: React.FC = () => {
                     </IonItem>
                   </div>
                 </IonText>
-                {/**make product list editable */}
-                {products.length > 0 && (
-                  <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
-                    <IonText>
-                      <h3 style={{ marginBottom: '0.5rem' }}>Products (click to edit):
-                        <IonButton
-                          onClick={() => setProducts([])}
-                          fill="solid"
-                          size="small"
-                          color="danger"
-                          style={{ marginTop: '0.5rem' }}
-                        >
-                          Hide
-                        </IonButton>
-                      </h3>
-                    </IonText>
-                    {products.map((product, index) => (
-                      <div key={index} style={{ marginBottom: '0.5rem' }}>
-                        {editingProductIndex === index ? (
-                          <IonCard style={{ margin: '0.5rem 0', backgroundColor: 'var(--ion-color-light-shade)' }}>
-                            <IonCardContent>
-                              <IonItem>
-                                <IonLabel position="stacked">Product Name</IonLabel>
-                                <IonInput
-                                  value={product.productName}
-                                  onIonInput={(e) => handleProductFieldChange(index, 'productName', e.detail.value!)}
-                                />
-                              </IonItem>
-                              <IonItem>
-                                <IonLabel position="stacked">Type</IonLabel>
-                                <IonInput
-                                  value={product.type || ''}
-                                  onIonInput={(e) => handleProductFieldChange(index, 'type', e.detail.value!)}
-                                />
-                              </IonItem>
-                              <IonItem>
-                                <IonLabel position="stacked">Quantity</IonLabel>
-                                <IonInput
-                                  type="number"
-                                  value={product.quantity}
-                                  onIonInput={(e) => handleProductFieldChange(index, 'quantity', e.detail.value!)}
-                                />
-                              </IonItem>
-                              <IonItem>
-                                <IonLabel position="stacked">Unit Price</IonLabel>
-                                <IonInput
-                                  type="number"
-                                  value={product.unitPrice}
-                                  onIonInput={(e) => handleProductFieldChange(index, 'unitPrice', e.detail.value!)}
-                                />
-                              </IonItem>
-                              <IonButton
-                                onClick={handleProductEditDone}
-                                fill="solid"
-                                size="small"
-                                style={{ marginTop: '0.5rem' }}
-                              >
-                                Done
-                              </IonButton>
-                              <IonButton
-                                onClick={() => handleProductDelete(index)}
-                                fill="solid"
-                                size="small"
-                                color="danger"
-                                style={{ marginTop: '0.5rem' }}
-                              >
-                                Delete
-                              </IonButton>
-                            </IonCardContent>
-                          </IonCard>
-                        ) : (
-                          <IonCard
-                            style={{ margin: '0.5rem 0', cursor: 'pointer' }}
-                            onClick={() => handleProductClick(index)}
-                          >
-                            <IonCardContent>
-                              <IonText>
-                                <p style={{ margin: 0 }}>
-                                  <strong>{product.productName}</strong>
-                                  {product.type && ` (${product.type})`}
-                                  <br />
-                                  Quantity: {product.quantity} | Unit Price: {product.unitPrice} |
-                                  Subtotal: {(product.quantity * product.unitPrice).toFixed(2)}
-                                </p>
-                              </IonText>
-                            </IonCardContent>
-                          </IonCard>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
                 <div
                   style={{
                     backgroundColor: 'var(--ion-color-light)',
@@ -664,6 +576,103 @@ const VoiceAssistantPage: React.FC = () => {
           duration={3000}
           color="danger"
         />
+
+        <IonModal isOpen={showProductModal} onDidDismiss={() => setShowProductModal(false)}>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>Edit Products</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={() => setShowProductModal(false)}>Close</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent className="ion-padding">
+            {products.length > 0 ? (
+              <div>
+                {products.map((product, index) => (
+                  <div key={index} style={{ marginBottom: '1rem' }}>
+                    {editingProductIndex === index ? (
+                      <IonCard style={{ backgroundColor: 'var(--ion-color-light-shade)' }}>
+                        <IonCardContent>
+                          <IonItem>
+                            <IonLabel position="stacked">Product Name</IonLabel>
+                            <IonInput
+                              value={product.productName}
+                              onIonInput={(e) => handleProductFieldChange(index, 'productName', e.detail.value!)}
+                            />
+                          </IonItem>
+                          <IonItem>
+                            <IonLabel position="stacked">Type</IonLabel>
+                            <IonInput
+                              value={product.type || ''}
+                              onIonInput={(e) => handleProductFieldChange(index, 'type', e.detail.value!)}
+                            />
+                          </IonItem>
+                          <IonItem>
+                            <IonLabel position="stacked">Quantity</IonLabel>
+                            <IonInput
+                              type="number"
+                              value={product.quantity}
+                              onIonInput={(e) => handleProductFieldChange(index, 'quantity', e.detail.value!)}
+                            />
+                          </IonItem>
+                          <IonItem>
+                            <IonLabel position="stacked">Unit Price</IonLabel>
+                            <IonInput
+                              type="number"
+                              value={product.unitPrice}
+                              onIonInput={(e) => handleProductFieldChange(index, 'unitPrice', e.detail.value!)}
+                            />
+                          </IonItem>
+                          <IonButton
+                            onClick={handleProductEditDone}
+                            fill="solid"
+                            size="small"
+                            style={{ marginTop: '0.5rem' }}
+                          >
+                            Done
+                          </IonButton>
+                          <IonButton
+                            onClick={() => handleProductDelete(index)}
+                            fill="solid"
+                            size="small"
+                            color="danger"
+                            style={{ marginTop: '0.5rem', marginLeft: '0.5rem' }}
+                          >
+                            Delete
+                          </IonButton>
+                        </IonCardContent>
+                      </IonCard>
+                    ) : (
+                      <IonCard
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleProductClick(index)}
+                      >
+                        <IonCardContent>
+                          <IonText>
+                            <p style={{ margin: 0 }}>
+                              <strong>{product.productName}</strong>
+                              {product.type && ` (${product.type})`}
+                              <br />
+                              Quantity: {product.quantity} | Unit Price: {product.unitPrice} |
+                              Subtotal: {(product.quantity * product.unitPrice).toFixed(2)}
+                            </p>
+                          </IonText>
+                        </IonCardContent>
+                      </IonCard>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                <IonText color="medium">
+                  <p>No products to edit</p>
+                </IonText>
+              </div>
+            )}
+          </IonContent>
+        </IonModal>
       </IonContent>
     </IonPage>
   );
