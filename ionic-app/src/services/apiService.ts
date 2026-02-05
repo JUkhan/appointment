@@ -17,6 +17,8 @@ import type {
   GetClientUsersResponse,
   UpdateDataUserRequest,
   UpdateDataUserResponse,
+  AnalyticsRequest,
+  AnalyticsResponse,
 } from '../types';
 import { parseProducts } from '../utils/parseProduct';
 // Flag to prevent multiple concurrent refresh requests
@@ -306,6 +308,14 @@ export const apiService = {
    */
   async cleanup(id: string): Promise<void> {
     await apiClient.delete(API_ENDPOINTS.CLEANUP(id));
+  },
+
+  /**
+   * Get transaction analytics
+   */
+  async getAnalytics(data: AnalyticsRequest): Promise<AnalyticsResponse> {
+    const response = await apiClient.post<AnalyticsResponse>(API_ENDPOINTS.ANALYTICS, data);
+    return response.data;
   },
 };
 

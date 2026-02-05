@@ -55,6 +55,9 @@ export const API_ENDPOINTS = {
   PROCESS_TEXT: '/api/transactions',
   GET_AUDIO: (id: string) => `/get-audio/${id}`,
   CLEANUP: (id: string) => `/cleanup/${id}`,
+
+  // Analytics
+  ANALYTICS: '/api/analytics/transactions',
 } as const;
 
 // Request timeout

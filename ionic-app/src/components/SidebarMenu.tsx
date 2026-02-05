@@ -106,7 +106,7 @@ const SidebarMenu: React.FC = () => {
             </IonMenuToggle>
 
             <IonMenuToggle>
-              <IonItem button>
+              <IonItem button onClick={() => history.push('/analytics')}>
                 <IonIcon icon={statsChartOutline} slot="start" />
                 <IonLabel>Analytics</IonLabel>
               </IonItem>

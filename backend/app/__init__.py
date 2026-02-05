@@ -64,10 +64,11 @@ def create_app():
         return jsonify({'error': 'Authorization token is required'}), 422
 
     # Register blueprints
-    from app.routes import auth, basic, data_center, subscription;
+    from app.routes import auth, basic, data_center, subscription, analytics;
     app.register_blueprint(auth)
     app.register_blueprint(basic)
     app.register_blueprint(data_center)
     app.register_blueprint(subscription)
+    app.register_blueprint(analytics)
 
     return app

@@ -135,3 +135,18 @@ export interface RoleChangeEvent {
 }
 
 export type RoleChangeCallback = (event: RoleChangeEvent) => void;
+
+// Analytics types
+export interface AnalyticsRequest {
+  client_id: string;
+  date: string;
+  type: 'day' | 'month' | 'year';
+  move: 'next' | 'prev';
+}
+
+export interface AnalyticsDataPoint {
+  label: string;
+  price: number;
+}
+
+export type AnalyticsResponse = AnalyticsDataPoint[];

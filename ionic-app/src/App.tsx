@@ -53,6 +53,7 @@ import ManageUsersPage from './pages/ManageUsersPage';
 import UpdatePasswordPage from './pages/UpdatePasswordPage';
 import SettingsPage from './pages/SettingsPage';
 import SystemSettingsPage from './pages/SystemSettingsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 /* Services & Constants */
 import storageService from './services/storageService';
@@ -132,6 +133,10 @@ const App: React.FC = () => {
 
             <RoleProtectedRoute allowedRoles={'admin'} exact path="/manage-users">
               <ManageUsersPage />
+            </RoleProtectedRoute>
+
+            <RoleProtectedRoute allowedRoles={'admin'} exact path="/analytics">
+              <AnalyticsPage />
             </RoleProtectedRoute>
 
             <Route exact path="/system-settings">
