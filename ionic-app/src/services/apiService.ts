@@ -274,7 +274,7 @@ export const apiService = {
   /**
    * Process text for voice assistant
    */
-  async processText(text: string, language: string): Promise<ProcessTextResponse> {
+  async processText(text: string, mobileNumber: string): Promise<ProcessTextResponse> {
     const clientId = await storageService.getItem(CLIENT_ID);
     const parsedProducts = parseProducts(text).filter(it => it.quantity > 0).map(product => {
       product.type ??= 'None';
@@ -286,7 +286,7 @@ export const apiService = {
       'client_id': clientId,
       'products': parsedProducts,
       'total_price': parsedProducts.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0),
-      language
+      'mobile': mobileNumber
     });
     return response.data;
   },

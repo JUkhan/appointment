@@ -445,16 +445,7 @@ def create_transaction():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         print(data['products'][0]['productName'])
-        #[{productName: "napa", quantity: 30, unitPrice: 1.5, type: "None"}]
-        #price, products = extract_medicine_patterns(data['user_text'])
-        #print(price, products)
-        # if(not products):
-        #     return jsonify({'error': 'Products are empty.'}), 500
-        # if(not price):
-        #     return jsonify({'error': 'Total price not found.'}), 500
-        # zero_q_p=[it for it in products if it.quantity==0]
-        # if zero_q_p:
-        #     return jsonify({'error': f'{zero_q_p[0].name} has quantity 0'}), 500
+        
         # Create new transaction
         transaction = Transaction(
             id = str(uuid.uuid4()),
@@ -462,7 +453,8 @@ def create_transaction():
             user_id=user_id,
             price=data['total_price'],
             latitude=data.get('latitude'),
-            longitude=data.get('longitude')
+            longitude=data.get('longitude'),
+            mobile = data.get('mobile', None)
         )
         
         transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it['productName'], item_type=it['type'], quantity=it['quantity'], unit_price=it['unitPrice']) for it in data['products']]

@@ -53,6 +53,7 @@ const VoiceAssistantPage: React.FC = () => {
   const [totalPrice, setTotalPrice] = useState('Total');
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+  const [mobileNumber, setMobileNumber] = useState('');
 
   useEffect(() => {
     initializeSpeechRecognition();
@@ -234,8 +235,8 @@ const VoiceAssistantPage: React.FC = () => {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send text to backend
-      const response = await apiService.processText(text, language);
-
+      const response = await apiService.processText(text, mobileNumber);
+      setMobileNumber('');
       // Add assistant message
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -316,15 +317,15 @@ const VoiceAssistantPage: React.FC = () => {
   }
   const onProductEdit = () => {
     const text = continuedText ? continuedText + ' ' + interimText : interimText;
-    const parsedProducts = parseProducts(text);
+    const parsedProducts = parseProducts(text).filter(it => it.quantity > 0);
     setProducts(parsedProducts);
-    console.log('Parsed Products:', parsedProducts);
+    console.log('Parsed Products:', parsedProducts, text);
   };
   const onStartStop = () => {
     if (isRecording) {
       setIsRecording(false);
       try {
-        if (recognitionRef.current && isRecording) {
+        if (recognitionRef.current) {
           recognitionRef.current.stop();
         }
       } catch (error: any) {
@@ -333,7 +334,8 @@ const VoiceAssistantPage: React.FC = () => {
         setShowToast(true);
       }
     } else {
-      setContinuedText(transcriptRef.current.trim());
+      if (!continuedText)
+        setContinuedText(transcriptRef.current.trim());
       startRecording();
     }
   };
@@ -358,6 +360,22 @@ const VoiceAssistantPage: React.FC = () => {
     let total = 0;
     const text: string[] = [];
     products.forEach(product => {
+      total += product.unitPrice * product.quantity;
+      const typeText = product.type ? ` type ${product.type}` : '';
+      text.push(`${product.productName}${typeText} quantity ${product.quantity} unit price ${product.unitPrice}`);
+    });
+    setTotalPrice(`Total: ${total.toFixed(2)} taka`);
+    transcriptRef.current = text.join(' ');
+    setIntrimText(transcriptRef.current);
+    setContinuedText('');
+  };
+  const handleProductDelete = (index: number) => {
+    const updatedProducts = products.filter((_, i) => i !== index);
+    setProducts(updatedProducts);
+    // Recalculate total when a product is deleted
+    let total = 0;
+    const text: string[] = [];
+    updatedProducts.forEach(product => {
       total += product.unitPrice * product.quantity;
       const typeText = product.type ? ` type ${product.type}` : '';
       text.push(`${product.productName}${typeText} quantity ${product.quantity} unit price ${product.unitPrice}`);
@@ -477,7 +495,7 @@ const VoiceAssistantPage: React.FC = () => {
           </IonFabButton>
         </IonFab>
 
-        {interimText && (
+        {(continuedText || interimText) && (
           <div
             style={{
               position: 'fixed',
@@ -498,15 +516,35 @@ const VoiceAssistantPage: React.FC = () => {
             >
               <IonCardContent>
                 <IonText color="primary">
-                  <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 'bold' }}>
+                  <div>
                     🎙️ Recognizing...
-                  </h2>
+                    <IonItem>
+                      <IonInput
+                        type="text"
+                        label="Mobile Number"
+                        labelPlacement="floating"
+                        placeholder="Enter Mobile Number"
+                        value={mobileNumber}
+                        onIonInput={(e) => setMobileNumber(e.detail.value || '')}
+                      />
+                    </IonItem>
+                  </div>
                 </IonText>
                 {/**make product list editable */}
                 {products.length > 0 && (
                   <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
                     <IonText>
-                      <h3 style={{ marginBottom: '0.5rem' }}>Products (click to edit):</h3>
+                      <h3 style={{ marginBottom: '0.5rem' }}>Products (click to edit):
+                        <IonButton
+                          onClick={() => setProducts([])}
+                          fill="solid"
+                          size="small"
+                          color="danger"
+                          style={{ marginTop: '0.5rem' }}
+                        >
+                          Hide
+                        </IonButton>
+                      </h3>
                     </IonText>
                     {products.map((product, index) => (
                       <div key={index} style={{ marginBottom: '0.5rem' }}>
@@ -550,6 +588,15 @@ const VoiceAssistantPage: React.FC = () => {
                                 style={{ marginTop: '0.5rem' }}
                               >
                                 Done
+                              </IonButton>
+                              <IonButton
+                                onClick={() => handleProductDelete(index)}
+                                fill="solid"
+                                size="small"
+                                color="danger"
+                                style={{ marginTop: '0.5rem' }}
+                              >
+                                Delete
                               </IonButton>
                             </IonCardContent>
                           </IonCard>

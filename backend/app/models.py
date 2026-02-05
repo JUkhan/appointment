@@ -40,6 +40,7 @@ class Transaction(db.Model):
     price = db.Column(db.Numeric(10, 2))
     latitude = db.Column(db.Numeric(10, 7), nullable=True)
     longitude = db.Column(db.Numeric(10, 7), nullable=True)
+    mobile = db.Column(String(15), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.now())
 
 class TransactionalData(db.Model):
