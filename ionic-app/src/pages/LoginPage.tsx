@@ -15,7 +15,7 @@ import {
 } from '@ionic/react';
 import { useAuth } from '../context/AuthContext';
 import { validateUsername, validatePassword } from '../utils/validation';
-
+import { storageService } from '../services/storageService';
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +25,7 @@ const LoginPage: React.FC = () => {
   const { login } = useAuth();
 
   const handleLogin = async () => {
+    setToastMessage(`hello client id: ${await storageService.getItem('client_id')}`);
     // Validation
     if (!validateUsername(username)) {
       setToastMessage('Username must be at least 3 characters');
@@ -40,6 +41,7 @@ const LoginPage: React.FC = () => {
 
     setIsLoading(true);
     try {
+
       await login({ username, password });
       // Navigation is handled by AuthContext
     } catch (error: any) {
@@ -62,9 +64,9 @@ const LoginPage: React.FC = () => {
           <IonCard>
             <IonCardContent>
               <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-                <h1 style={{ marginBottom: '0.5rem' }}>Doctor Appointment</h1>
+                <h1 style={{ marginBottom: '0.5rem' }}>MediCare App</h1>
                 <IonText color="medium">
-                  <p>Sign in to book your appointment</p>
+                  <p>Sign in to manage your revenue</p>
                 </IonText>
               </div>
 

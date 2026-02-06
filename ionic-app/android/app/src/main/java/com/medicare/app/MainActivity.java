@@ -1,4 +1,4 @@
-package com.docappointment.app;
+package com.medicare.app;
 
 import com.getcapacitor.BridgeActivity;
 

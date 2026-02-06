@@ -1,11 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.docappointment.app',
-  appName: 'Doc Appointment',
+  appId: 'com.medicare.app',
+  appName: 'MediCare',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'http'
   },
   plugins: {
     VoiceRecorder: {

@@ -94,6 +94,57 @@ npx cap sync android
 npx cap open android
 ```
 
+## -----------------
+  Step 1: Uninstall Old App from Device
+
+  On your Android device:
+  - Go to Settings > Apps
+  - Find your app
+  - Uninstall it completely
+
+  Step 2: Complete Clean Rebuild
+
+  # Navigate to ionic-app
+  cd D:\appointment\ionic-app
+
+  # Rebuild web assets
+  npm run build
+
+  # Force sync to Android (this copies AndroidManifest changes)
+  npx cap sync android --force
+
+  # Clean Android build
+  cd android
+  .\gradlew clean
+  cd ..
+
+  Step 3: Verify AndroidManifest
+
+  Let me check if the cleartext setting is still there:
+
+● Searched for 1 pattern (ctrl+o to expand)
+
+● Good! The cleartext setting is there. Now in Android Studio:
+
+  Step 4: Complete Rebuild
+
+  1. Build > Clean Project
+  2. Build > Rebuild Project
+  3. Run > Run 'app' (this will install fresh)
+
+  Step 5: Alternative - Use Terminal to Install
+
+  Or install directly via command line:
+
+  cd D:\appointment\ionic-app\android
+  .\gradlew installDebug
+
+  This ensures a completely fresh install with all the manifest changes.
+
+  The key issue is that the old app on your device doesn't have the cleartext traffic permission. A fresh install should
+   fix it!
+## -----------------
+
 4. Build and run from Android Studio
 
 **Note**: For Android, the API base URL is automatically set to `http://192.168.43.192:5000` (your local network IP). Update `src/constants/api.ts` if your backend is on a different IP.

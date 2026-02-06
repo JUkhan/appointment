@@ -124,6 +124,7 @@ const SystemSettingsPage: React.FC = () => {
 
     } catch (error) {
       console.error('Error saving system settings:', error);
+      alert(JSON.stringify(error));
       setToastMessage('Failed to save settings. Please try again.');
       setToastColor('danger');
       setShowToast(true);

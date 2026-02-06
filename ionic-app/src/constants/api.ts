@@ -13,7 +13,7 @@ const isDevelopment = import.meta.env.DEV;
 const getBaseURL = (): string => {
   // Production URL (can be configured via environment variable)
   if (!isDevelopment) {
-    return import.meta.env.VITE_API_URL || 'https://your-production-api.com';
+    return import.meta.env.VITE_API_URL || 'http://192.168.43.192:5000';
   }
 
   // Development URLs

@@ -12,6 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   userId: string | null;
   userRole: UserRole | null;
+  username: Username | null;
   login: (data: LoginData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
