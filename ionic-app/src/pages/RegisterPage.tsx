@@ -59,6 +59,10 @@ const RegisterPage: React.FC = () => {
       setToastMessage('Registration successful! Please login.');
       setToastColor('success');
       setShowToast(true);
+      //clear form
+      setUsername('');
+      setPassword('');
+      setConfirmPassword('');
     } catch (error: any) {
       setToastMessage(error.message || 'Registration failed');
       setToastColor('danger');

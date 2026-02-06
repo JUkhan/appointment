@@ -103,29 +103,30 @@ const VoiceAssistantPage: React.FC = () => {
       };
 
       recognition.onresult = (event: any) => {
-
         let interim = '';
-        // Accumulate all final results
         let finalTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
+
+        // Only process new results starting from event.resultIndex
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           const text = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += text + ' ';
           } else {
-            interim += text + ' ';
+            interim = text; // Only use the latest interim result
           }
         }
+
+        // Append new final results to existing transcript
         if (finalTranscript) {
-          transcriptRef.current = finalTranscript.trim();
+          transcriptRef.current += (transcriptRef.current ? ' ' : '') + finalTranscript.trim();
         }
-        let text = '';
-        if (transcriptRef.current) {
-          text += transcriptRef.current;
-        }
+
+        // Display accumulated final results + current interim
+        let displayText = transcriptRef.current;
         if (interim) {
-          text += interim;
+          displayText += (displayText ? ' ' : '') + interim;
         }
-        setIntrimText(text.trim());
+        setIntrimText(displayText.trim());
       };
 
       recognition.onerror = (event: any) => {
@@ -152,16 +153,9 @@ const VoiceAssistantPage: React.FC = () => {
       };
 
       recognition.onend = () => {
-        // Only set to false if we're not intentionally recording
-        // This prevents auto-restart when speech pauses
-        // if (!isRecording) {
-        //   if (recordingIntervalRef.current) {
-        //     clearInterval(recordingIntervalRef.current);
-        //     recordingIntervalRef.current = null;
-        //   }
-        // }
-        setIsRecording(false);
         console.log('------Speech recognition ended');
+        // Don't set isRecording to false here - let the user control it with the stop button
+        // This prevents the UI from showing stopped state when recognition auto-ends
       };
 
       recognitionRef.current = recognition;
@@ -178,6 +172,11 @@ const VoiceAssistantPage: React.FC = () => {
         setToastMessage('Speech recognition not available');
         setShowToast(true);
         return;
+      }
+
+      // Reset transcript if not continuing from previous
+      if (!continuedText) {
+        transcriptRef.current = '';
       }
 
       // Set language for speech recognition
@@ -319,7 +318,7 @@ const VoiceAssistantPage: React.FC = () => {
   }
   const onProductEdit = () => {
     const text = continuedText ? continuedText + ' ' + interimText : interimText;
-    const parsedProducts = parseProducts(text).filter(it => it.quantity > 0);
+    const parsedProducts = parseProducts(text);
     setProducts(parsedProducts);
     setShowProductModal(true);
     console.log('Parsed Products:', parsedProducts, text);
@@ -392,6 +391,20 @@ const VoiceAssistantPage: React.FC = () => {
   const onSave = () => {
     stopRecording();
   }
+  const onCancel = () => {
+    setIntrimText('');
+    setContinuedText('');
+    setIsRecording(false);
+    try {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    } catch (error: any) {
+      console.error('Stop recording error:', error);
+      setToastMessage('Failed to stop recording');
+      setShowToast(true);
+    }
+  }
 
   return (
     <IonPage>
@@ -423,7 +436,7 @@ const VoiceAssistantPage: React.FC = () => {
               <p>3. Speak total price/cost</p>
               <p>4. Press the stop button when done</p>
               <p style={{ fontSize: '0.875rem', marginTop: '1rem', color: 'var(--ion-color-primary)' }}>
-                Napa tablet quantity 10 Minaril tablet quantity 5 Total price 120 taka
+                Napa type tablet quantity 10 unit price 1.7 Minaril quantity 5 unit price 2.5
               </p>
             </IonText>
           </div>
@@ -565,6 +578,7 @@ const VoiceAssistantPage: React.FC = () => {
               <IonButton onClick={onCalculateTotal} fill="clear">{totalPrice}</IonButton>
               <IonButton onClick={onProductEdit} fill="clear">Edit</IonButton>
               <IonButton onClick={onSave} fill="clear">Save</IonButton>
+              <IonButton onClick={onCancel} fill="clear">Cancel</IonButton>
             </IonCard>
           </div>
         )}

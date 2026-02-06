@@ -47,7 +47,7 @@ import storageService from '../services/storageService';
 
 const SettingsPage: React.FC = () => {
   const history = useHistory();
-  const { userId, userRole } = useAuth();
+  const { username } = useAuth();
   const { isAdmin } = useRole();
 
   // Settings state
@@ -188,17 +188,11 @@ const SettingsPage: React.FC = () => {
           </IonCardHeader>
           <IonCardContent>
             <IonList lines="none">
+
               <IonItem>
                 <IonLabel>
-                  <p>User ID</p>
-                  <h2>{userId}</h2>
-                </IonLabel>
-              </IonItem>
-              <IonItem>
-                <IonLabel>
-                  <p>Role</p>
                   <h2>
-                    <IonBadge color="primary">{userRole || 'N/A'}</IonBadge>
+                    <IonBadge color="primary">{username || 'N/A'}</IonBadge>
                   </h2>
                 </IonLabel>
               </IonItem>

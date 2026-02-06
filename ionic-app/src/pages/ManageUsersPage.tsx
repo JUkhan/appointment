@@ -256,7 +256,6 @@ const ManageUsersPage: React.FC = () => {
                           <h2>
                             <strong>{user.username}</strong>
                           </h2>
-                          <p>ID: {user.id}</p>
                           <p>Created: {new Date(user.created_at).toLocaleDateString()}</p>
                         </IonLabel>
                         <div slot="end" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>

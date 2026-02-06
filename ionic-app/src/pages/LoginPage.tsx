@@ -103,7 +103,7 @@ const LoginPage: React.FC = () => {
                 {isLoading ? 'Logging in...' : 'Login'}
               </IonButton>
 
-              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+              {/* <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <IonText color="medium">
                   <p>
                     Don't have an account?{' '}
@@ -112,7 +112,7 @@ const LoginPage: React.FC = () => {
                     </a>
                   </p>
                 </IonText>
-              </div>
+              </div> */}
             </IonCardContent>
           </IonCard>
         </div>
