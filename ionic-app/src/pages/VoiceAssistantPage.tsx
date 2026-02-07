@@ -84,6 +84,13 @@ const VoiceAssistantPage: React.FC = () => {
         setIntrimText(continuedText ? continuedText + ' ' + text : text);
       }
     });
+
+    // Listen for listening state changes
+    SpeechRecognition.addListener('listeningState', (data: any) => {
+      if (data.status === 'stopped') {
+        setIsRecording(false);
+      }
+    });
   };
 
   const startRecording = async () => {
@@ -235,9 +242,9 @@ const VoiceAssistantPage: React.FC = () => {
         setShowToast(true);
       }
     } else {
-      if (!continuedText) {
-        setContinuedText(interimText.trim());
-      }
+      //if (!continuedText) {
+      setContinuedText(interimText.trim());
+      //}
       startRecording();
     }
   };
