@@ -24,7 +24,8 @@
       "Bash(npm run build:*)",
       "Bash(python -c:*)",
       "Bash(flask db init:*)",
-      "Bash(python -m flask:*)"
+      "Bash(python -m flask:*)",
+      "Bash(npx cap sync:*)"
     ],
     "deny": [],
     "ask": []

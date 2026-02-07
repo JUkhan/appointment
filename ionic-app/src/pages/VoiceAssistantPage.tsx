@@ -21,21 +21,10 @@ import {
   IonModal,
 } from '@ionic/react';
 import { micOutline, stopOutline } from 'ionicons/icons';
-import { TextToSpeech } from '@capacitor-community/text-to-speech';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import apiService from '../services/apiService';
 import type { Message } from '../types';
-import { stripMarkdown } from '../utils/markdown';
 import { parseProducts, type Product } from '../utils/parseProduct';
-
-// Extend Window interface for Web Speech API
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
 
 const VoiceAssistantPage: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -45,10 +34,7 @@ const VoiceAssistantPage: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  //const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef<HTMLIonContentElement>(null);
-  const recognitionRef = useRef<any>(null);
-  const transcriptRef = useRef<string>('');
   const [interimText, setIntrimText] = useState('');
   const [continuedText, setContinuedText] = useState('');
   const [totalPrice, setTotalPrice] = useState('Total');
@@ -58,13 +44,13 @@ const VoiceAssistantPage: React.FC = () => {
   const [showProductModal, setShowProductModal] = useState(false);
 
   useEffect(() => {
-    initializeSpeechRecognition();
+    requestSpeechPermissions();
+    setupSpeechListeners();
+
     return () => {
-      // if (recordingIntervalRef.current) {
-      //   clearInterval(recordingIntervalRef.current);
-      // }
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      SpeechRecognition.removeAllListeners();
+      if (isRecording) {
+        SpeechRecognition.stop();
       }
     };
   }, []);
@@ -76,134 +62,70 @@ const VoiceAssistantPage: React.FC = () => {
     }
   }, [messages]);
 
-  const initializeSpeechRecognition = () => {
+  const requestSpeechPermissions = async () => {
     try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      if (!SpeechRecognition) {
-        setToastMessage('Speech recognition is not supported in your browser');
+      const { speechRecognition } = await SpeechRecognition.requestPermissions();
+      if (speechRecognition !== 'granted') {
+        setToastMessage('Microphone permission is required');
         setShowToast(true);
-        return;
       }
-
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true; // Keep listening until manually stopped
-      recognition.interimResults = true; // Get interim results
-
-      recognition.onstart = () => {
-        setIsRecording(true);
-        //setRecordingDuration(0);
-        // if (!isContinued) {
-        //   transcriptRef.current = ''; // Reset transcript
-        // }
-        // Start duration counter
-        // recordingIntervalRef.current = setInterval(() => {
-        //   setRecordingDuration((prev) => prev + 1);
-        // }, 1000);
-      };
-
-      recognition.onresult = (event: any) => {
-        let interim = '';
-        let finalTranscript = '';
-
-        // Only process new results starting from event.resultIndex
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const text = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += text + ' ';
-          } else {
-            interim = text; // Only use the latest interim result
-          }
-        }
-
-        // Append new final results to existing transcript
-        if (finalTranscript) {
-          transcriptRef.current += (transcriptRef.current ? ' ' : '') + finalTranscript.trim();
-        }
-
-        // Display accumulated final results + current interim
-        let displayText = transcriptRef.current;
-        if (interim) {
-          displayText += (displayText ? ' ' : '') + interim;
-        }
-        setIntrimText(displayText.trim());
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-
-        // Don't reset on 'no-speech' error in continuous mode
-        if (event.error === 'no-speech') {
-          return; // Keep listening
-        }
-
-        setIsRecording(false);
-        // if (recordingIntervalRef.current) {
-        //   clearInterval(recordingIntervalRef.current);
-        //   recordingIntervalRef.current = null;
-        // }
-
-        if (event.error === 'not-allowed') {
-          setToastMessage('Microphone permission is required');
-          setShowToast(true);
-        } else if (event.error !== 'aborted') {
-          setToastMessage('Speech recognition error: ' + event.error);
-          setShowToast(true);
-        }
-      };
-
-      recognition.onend = () => {
-        console.log('------Speech recognition ended');
-        // Don't set isRecording to false here - let the user control it with the stop button
-        // This prevents the UI from showing stopped state when recognition auto-ends
-      };
-
-      recognitionRef.current = recognition;
     } catch (error) {
-      console.error('Speech recognition initialization error:', error);
-      setToastMessage('Failed to initialize speech recognition');
+      console.error('Permission error:', error);
+      setToastMessage('Failed to request microphone permission');
       setShowToast(true);
     }
   };
 
+  const setupSpeechListeners = () => {
+    // Listen for partial results (interim)
+    SpeechRecognition.addListener('partialResults', (data: any) => {
+      if (data.matches && data.matches.length > 0) {
+        const text = data.matches[0];
+        setIntrimText(continuedText ? continuedText + ' ' + text : text);
+      }
+    });
+  };
+
   const startRecording = async () => {
     try {
-      if (!recognitionRef.current) {
+      // Check if available
+      const { available } = await SpeechRecognition.available();
+      if (!available) {
         setToastMessage('Speech recognition not available');
         setShowToast(true);
         return;
       }
 
-      // Reset transcript if not continuing from previous
+      // Reset interim text if not continuing
       if (!continuedText) {
-        transcriptRef.current = '';
+        setIntrimText('');
       }
 
-      // Set language for speech recognition
-      recognitionRef.current.lang = language === 'en' ? 'en-US' : 'bn-BD';
-      recognitionRef.current.start();
+      // Start recognition
+      await SpeechRecognition.start({
+        language: language === 'en' ? 'en-US' : 'bn-BD',
+        maxResults: 1,
+        partialResults: true,
+        popup: false,
+      });
+
+      setIsRecording(true);
     } catch (error: any) {
       console.error('Start recording error:', error);
-      setToastMessage('Failed to start recording');
+      setToastMessage('Failed to start recording: ' + error.message);
       setShowToast(true);
     }
   };
 
   const stopRecording = async () => {
-    setIsRecording(false);
     try {
-      if (recognitionRef.current && isRecording) {
-        recognitionRef.current.stop();
+      if (isRecording) {
+        await SpeechRecognition.stop();
       }
+      setIsRecording(false);
 
-
-      // if (recordingIntervalRef.current) {
-      //   clearInterval(recordingIntervalRef.current);
-      //   recordingIntervalRef.current = null;
-      // }
-
-      // Process the accumulated transcript
-      const text = transcriptRef.current.trim();
+      // Process the text
+      const text = interimText.trim();
       if (text) {
         await processText(text);
       } else {
@@ -212,7 +134,8 @@ const VoiceAssistantPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Stop recording error:', error);
-      setToastMessage('Failed to stop recording');
+      setIsRecording(false);
+      setToastMessage('Failed to stop recording: ' + error.message);
       setShowToast(true);
     }
   };
@@ -246,9 +169,6 @@ const VoiceAssistantPage: React.FC = () => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
-
-      // Play TTS
-      await playTTS(response.llm_response);
     } catch (error: any) {
       console.error('Process text error:', error);
 
@@ -269,26 +189,6 @@ const VoiceAssistantPage: React.FC = () => {
     }
   };
 
-  const playTTS = async (text: string) => {
-    try {
-      // Strip markdown for TTS
-      const plainText = stripMarkdown(text);
-
-      await TextToSpeech.speak({
-        text: plainText,
-        lang: language === 'en' ? 'en-US' : 'bn-BD',
-        rate: 1.0,
-        pitch: 1.0,
-        volume: 1.0,
-        category: 'ambient',
-      });
-
-    } catch (error) {
-      console.error('TTS error:', error);
-      // Don't show error to user, just log it
-    }
-  };
-
   const handleToggleRecording = () => {
     if (isRecording) {
       stopRecording();
@@ -300,7 +200,7 @@ const VoiceAssistantPage: React.FC = () => {
     startRecording();
     const lastMessage = messages[messages.length - 1];
     setContinuedText(lastMessage ? lastMessage.text : '');
-    console.log('Continuing with transcript:', transcriptRef.current);
+    console.log('Continuing with last message text');
     // Remove continued flag from last message
     setMessages((prev) => prev.map(msg =>
       msg.continued ? { ...msg, continued: false } : msg
@@ -323,21 +223,21 @@ const VoiceAssistantPage: React.FC = () => {
     setShowProductModal(true);
     console.log('Parsed Products:', parsedProducts, text);
   };
-  const onStartStop = () => {
+  const onStartStop = async () => {
     if (isRecording) {
-      setIsRecording(false);
       try {
-        if (recognitionRef.current) {
-          recognitionRef.current.stop();
-        }
+        await SpeechRecognition.stop();
+        setIsRecording(false);
       } catch (error: any) {
         console.error('Stop recording error:', error);
+        setIsRecording(false);
         setToastMessage('Failed to stop recording');
         setShowToast(true);
       }
     } else {
-      if (!continuedText)
-        setContinuedText(transcriptRef.current.trim());
+      if (!continuedText) {
+        setContinuedText(interimText.trim());
+      }
       startRecording();
     }
   };
@@ -368,8 +268,8 @@ const VoiceAssistantPage: React.FC = () => {
       text.push(`${product.productName}${typeText} quantity ${product.quantity} unit price ${product.unitPrice}`);
     });
     setTotalPrice(`Total: ${total.toFixed(2)} taka`);
-    transcriptRef.current = text.join(' ');
-    setIntrimText(transcriptRef.current);
+    const updatedText = text.join(' ');
+    setIntrimText(updatedText);
     setContinuedText('');
   };
   const handleProductDelete = (index: number) => {
@@ -384,23 +284,24 @@ const VoiceAssistantPage: React.FC = () => {
       text.push(`${product.productName}${typeText} quantity ${product.quantity} unit price ${product.unitPrice}`);
     });
     setTotalPrice(`Total: ${total.toFixed(2)} taka`);
-    transcriptRef.current = text.join(' ');
-    setIntrimText(transcriptRef.current);
+    const updatedText = text.join(' ');
+    setIntrimText(updatedText);
     setContinuedText('');
   };
   const onSave = () => {
     stopRecording();
   }
-  const onCancel = () => {
-    setIntrimText('');
-    setContinuedText('');
-    setIsRecording(false);
+  const onCancel = async () => {
     try {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (isRecording) {
+        await SpeechRecognition.stop();
       }
+      setIsRecording(false);
+      setIntrimText('');
+      setContinuedText('');
     } catch (error: any) {
       console.error('Stop recording error:', error);
+      setIsRecording(false);
       setToastMessage('Failed to stop recording');
       setShowToast(true);
     }
@@ -462,9 +363,9 @@ const VoiceAssistantPage: React.FC = () => {
                     }}
                   >
                     {message.type === 'assistant' ? (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                         {message.text}
-                      </ReactMarkdown>
+                      </div>
                     ) : (
                       <p>{message.text}
                         {message.continued ? (<IonFab slot="fixed">
@@ -537,7 +438,7 @@ const VoiceAssistantPage: React.FC = () => {
                     🎙️ Recognizing...
                     <IonItem>
                       <IonInput
-                        type="text"
+                        type="tel"
                         label="Mobile Number"
                         labelPlacement="floating"
                         placeholder="Enter Mobile Number"
