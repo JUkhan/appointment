@@ -6,6 +6,39 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+@celery.task(name='app.tasks.send_whatsapp_transaction', bind=True, max_retries=3)
+def send_whatsapp_transaction(self, to_number: str, products: list, total_price: float, business_name: str = None):
+    """
+    Send transaction details via WhatsApp asynchronously
+
+    Args:
+        to_number: Recipient's phone number
+        products: List of product dictionaries
+        total_price: Total transaction price
+        business_name: Optional business name
+    """
+    try:
+        from app.utils.whatsapp import send_whatsapp_message, format_transaction_message
+
+        # Format the message
+        message = format_transaction_message(products, total_price, business_name)
+
+        # Send WhatsApp message
+        success = send_whatsapp_message(to_number, message)
+
+        if success:
+            logger.info(f"WhatsApp message sent successfully to {to_number}")
+            return f"WhatsApp sent to {to_number}"
+        else:
+            logger.warning(f"Failed to send WhatsApp to {to_number}")
+            raise Exception("Failed to send WhatsApp message")
+
+    except Exception as e:
+        logger.error(f"Error sending WhatsApp: {str(e)}")
+        # Retry with exponential backoff
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+
 @celery.task(name='app.tasks.check_expired_subscriptions', bind=True, max_retries=3)
 def check_expired_subscriptions(self):
     """Check and deactivate expired subscriptions"""

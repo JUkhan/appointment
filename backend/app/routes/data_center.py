@@ -5,6 +5,9 @@ from app import db
 from app.models import Client, DataUser, Transaction, TransactionalData, Subscription
 from app.routes.parse_product import extract_medicine_patterns, merge_duplicate_products_sum
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 api = Blueprint('api', __name__)
 # ==================== CLIENT ROUTES ====================
@@ -458,15 +461,31 @@ def create_transaction():
         )
         
         transactional_data=[TransactionalData(transaction_id=transaction.id, item_name=it['productName'], item_type=it['type'], quantity=it['quantity'], unit_price=it['unitPrice']) for it in data['products']]
-        
+
         db.session.add(transaction)
         db.session.bulk_save_objects(transactional_data)
         db.session.commit()
 
+        # Send WhatsApp message asynchronously if mobile number is provided
+        if transaction.mobile:
+            try:
+                from app.tasks import send_whatsapp_transaction
+                # Trigger async task to send WhatsApp message
+                send_whatsapp_transaction.delay(
+                    to_number=transaction.mobile,
+                    products=data['products'],
+                    total_price=float(data['total_price']),
+                    business_name=client.business_name
+                )
+                logger.info(f'WhatsApp task queued for {transaction.mobile}')
+            except Exception as e:
+                # Log error but don't fail the transaction
+                logger.error(f'Failed to queue WhatsApp task: {str(e)}')
+
         return jsonify({
                 #'user_text': data['user_text'],
                 'llm_response': 'Successfully done. You are brilliant.',
-            
+
         }), 201
 
     except Exception as e:
