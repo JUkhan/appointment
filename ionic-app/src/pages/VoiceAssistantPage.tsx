@@ -286,7 +286,7 @@ const VoiceAssistantPage: React.FC = () => {
     products.forEach(product => {
       total += product.unitPrice * product.quantity;
       const typeText = product.type ? ` type ${product.type}` : '';
-      text.push(`${product.productName}${typeText} quantity ${product.quantity} unit price ${product.unitPrice}`);
+      text.push(`${product.productName}${typeText} quantity ${product.quantity} price ${product.unitPrice}`);
     });
     setTotalPrice(`Total: ${total.toFixed(2)} taka`);
     const updatedText = text.join(' ');
@@ -303,7 +303,7 @@ const VoiceAssistantPage: React.FC = () => {
     updatedProducts.forEach(product => {
       total += product.unitPrice * product.quantity;
       const typeText = product.type ? ` type ${product.type}` : '';
-      text.push(`${product.productName}${typeText} quantity ${product.quantity} unit price ${product.unitPrice}`);
+      text.push(`${product.productName}${typeText} quantity ${product.quantity} price ${product.unitPrice}`);
     });
     setTotalPrice(`Total: ${total.toFixed(2)} taka`);
     const updatedText = text.join(' ');
