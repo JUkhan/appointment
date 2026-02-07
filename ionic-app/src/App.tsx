@@ -38,6 +38,7 @@ import './theme/variables.css';
 
 /* Context */
 import { AuthProviderWithRoleSync } from './components/AuthProviderWithRoleSync';
+import { useAuth } from './context/AuthContext';
 
 /* Components */
 import ProtectedRoute from './components/ProtectedRoute';
@@ -60,6 +61,26 @@ import storageService from './services/storageService';
 import { CLIENT_ID } from './constants/api';
 
 setupIonicReact();
+
+// Component to handle default redirect based on auth status
+const DefaultRedirect: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
+      }}>
+        <IonSpinner name="crescent" />
+      </div>
+    );
+  }
+
+  return <Redirect to={isAuthenticated ? '/assistant' : '/login'} />;
+};
 
 const App: React.FC = () => {
   const [hasClientId, setHasClientId] = useState<boolean | null>(null);
@@ -163,7 +184,7 @@ const App: React.FC = () => {
 
             {/* Default Redirect */}
             <Route exact path="/">
-              <Redirect to="/login" />
+              <DefaultRedirect />
             </Route>
           </IonRouterOutlet>
         </AuthProviderWithRoleSync>
