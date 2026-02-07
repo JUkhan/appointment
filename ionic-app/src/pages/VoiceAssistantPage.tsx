@@ -357,11 +357,9 @@ const VoiceAssistantPage: React.FC = () => {
             <IonText color="medium">
               <h3>Welcome to Voice Assistant</h3>
               <p>1. Press the microphone button to start</p>
-              <p>2. Speak product name and quantity</p>
-              <p>3. Speak total price/cost</p>
-              <p>4. Press the stop button when done</p>
+              <p>2. Speak product name and quantity and price</p>
               <p style={{ fontSize: '0.875rem', marginTop: '1rem', color: 'var(--ion-color-primary)' }}>
-                Napa type tablet quantity 10 unit price 1.7 Minaril quantity 5 unit price 2.5
+                Napa type tablet quantity 10 price 1.7 Minaril quantity 5 price 2.5
               </p>
             </IonText>
           </div>
