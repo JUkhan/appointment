@@ -35,6 +35,7 @@ const VoiceAssistantPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const contentRef = useRef<HTMLIonContentElement>(null);
+  const continuedTextRef = useRef<string>('');
   const [interimText, setIntrimText] = useState('');
   const [continuedText, setContinuedText] = useState('');
   const [totalPrice, setTotalPrice] = useState('Total');
@@ -81,7 +82,8 @@ const VoiceAssistantPage: React.FC = () => {
     SpeechRecognition.addListener('partialResults', (data: any) => {
       if (data.matches && data.matches.length > 0) {
         const text = data.matches[0];
-        setIntrimText(continuedText ? continuedText + ' ' + text : text);
+        // Partial results contain the full text for the current session
+        setIntrimText(text);
       }
     });
 
@@ -132,7 +134,7 @@ const VoiceAssistantPage: React.FC = () => {
       setIsRecording(false);
 
       // Process the text
-      const text = interimText.trim();
+      const text = continuedText ? continuedText + ' ' + interimText : interimText.trim();
       if (text) {
         await processText(text);
       } else {
@@ -153,8 +155,9 @@ const VoiceAssistantPage: React.FC = () => {
     setTotalPrice('Total');
     setProducts([]);
     try {
-      text = continuedText ? continuedText + ' ' + text : text;
+      //text = continuedText ? continuedText + ' ' + text : text;
       setContinuedText('');
+      continuedTextRef.current = '';
       // Add user message
       const userMessage: Message = {
         id: Date.now().toString(),
@@ -166,13 +169,13 @@ const VoiceAssistantPage: React.FC = () => {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send text to backend
-      const response = await apiService.processText(text, mobileNumber);
+      await apiService.processText(text, mobileNumber);
       setMobileNumber('');
       // Add assistant message
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        text: response.llm_response,
+        text: 'Saved successfully. Total price is ' + parseProducts(text).reduce((sum, product) => sum + product.quantity * product.unitPrice, 0).toFixed(2) + ' taka.',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -206,7 +209,9 @@ const VoiceAssistantPage: React.FC = () => {
   const handleToggleRecordingContinued = () => {
     startRecording();
     const lastMessage = messages[messages.length - 1];
-    setContinuedText(lastMessage ? lastMessage.text : '');
+    const lastText = lastMessage ? lastMessage.text : '';
+    setContinuedText(lastText);
+    continuedTextRef.current = lastText;
     console.log('Continuing with last message text');
     // Remove continued flag from last message
     setMessages((prev) => prev.map(msg =>
@@ -230,11 +235,23 @@ const VoiceAssistantPage: React.FC = () => {
     setShowProductModal(true);
     console.log('Parsed Products:', parsedProducts, text);
   };
+  const accumulateText = () => {
+    // Accumulate the text: combine continuedText with current interimText
+    const currentText = interimText.trim();
+    const accumulated = continuedText
+      ? (currentText ? continuedText + ' ' + currentText : continuedText)
+      : currentText;
+    setContinuedText(accumulated);
+    continuedTextRef.current = accumulated;
+  }
   const onStartStop = async () => {
+    accumulateText();
     if (isRecording) {
       try {
         await SpeechRecognition.stop();
         setIsRecording(false);
+        // Clear interim text for next session
+        setIntrimText('');
       } catch (error: any) {
         console.error('Stop recording error:', error);
         setIsRecording(false);
@@ -242,9 +259,6 @@ const VoiceAssistantPage: React.FC = () => {
         setShowToast(true);
       }
     } else {
-      //if (!continuedText) {
-      setContinuedText(interimText.trim());
-      //}
       startRecording();
     }
   };
@@ -278,6 +292,7 @@ const VoiceAssistantPage: React.FC = () => {
     const updatedText = text.join(' ');
     setIntrimText(updatedText);
     setContinuedText('');
+    continuedTextRef.current = '';
   };
   const handleProductDelete = (index: number) => {
     const updatedProducts = products.filter((_, i) => i !== index);
@@ -294,6 +309,7 @@ const VoiceAssistantPage: React.FC = () => {
     const updatedText = text.join(' ');
     setIntrimText(updatedText);
     setContinuedText('');
+    continuedTextRef.current = '';
   };
   const onSave = () => {
     stopRecording();
@@ -306,6 +322,7 @@ const VoiceAssistantPage: React.FC = () => {
       setIsRecording(false);
       setIntrimText('');
       setContinuedText('');
+      continuedTextRef.current = '';
     } catch (error: any) {
       console.error('Stop recording error:', error);
       setIsRecording(false);
@@ -476,7 +493,7 @@ const VoiceAssistantPage: React.FC = () => {
                         lineHeight: '1.5',
                       }}
                     >
-                      "{continuedText ? continuedText + ' ' + interimText : interimText}"
+                      "{continuedText && interimText ? continuedText + ' ' + interimText : (continuedText || interimText)}"
                     </p>
                   </IonText>
                 </div>
