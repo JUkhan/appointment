@@ -136,6 +136,12 @@ const VoiceAssistantPage: React.FC = () => {
       // Process the text
       const text = continuedText ? continuedText + ' ' + interimText : interimText.trim();
       if (text) {
+        const products = parseProducts(text);
+        if (products.length === 0) {
+          setToastMessage('No products detected in speech. Please try again.');
+          setShowToast(true);
+          return;
+        }
         await processText(text);
       } else {
         setToastMessage('No speech detected. Please try again.');
@@ -226,7 +232,7 @@ const VoiceAssistantPage: React.FC = () => {
     parsedProducts.forEach(product => {
       total += product.unitPrice * product.quantity;
     });
-    setTotalPrice(`Total: ${total.toFixed(2)} taka`);
+    setTotalPrice(`Total: ${total.toFixed(2)}`);
   }
   const onProductEdit = () => {
     const text = continuedText ? continuedText + ' ' + interimText : interimText;
@@ -425,7 +431,7 @@ const VoiceAssistantPage: React.FC = () => {
           </div>
         )}
 
-        <IonFab vertical="bottom" horizontal="center" slot="fixed">
+        <IonFab vertical="bottom" horizontal="center" slot="fixed" style={{ zIndex: 999, marginBottom: '1rem' }}>
           <IonFabButton
             onClick={handleToggleRecording}
             color={isRecording ? 'danger' : 'primary'}
@@ -500,7 +506,7 @@ const VoiceAssistantPage: React.FC = () => {
               <IonButton onClick={onStartStop} fill="clear">{isRecording ? 'Stop' : 'Start'}</IonButton>
               <IonButton onClick={onCalculateTotal} fill="clear">{totalPrice}</IonButton>
               <IonButton onClick={onProductEdit} fill="clear">Edit</IonButton>
-              <IonButton onClick={onSave} fill="clear">Save</IonButton>
+              <IonButton onClick={onSave} fill="solid">Submit</IonButton>
               <IonButton onClick={onCancel} fill="clear">Cancel</IonButton>
             </IonCard>
           </div>

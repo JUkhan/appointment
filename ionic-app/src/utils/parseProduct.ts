@@ -55,9 +55,12 @@ export function parseProducts(input: string): Product[] {
           // Skip this non-numeric token
           i++;
         }
-      } else if (tokens[i] === 'price') {
+      } else if (tokens[i] === 'price' || tokens[i] === 'unit') {
+        i++;
+        if (tokens[i] === 'price') {
+          i++;
+        }
         propCount++;
-        i += 1;
         // Skip non-numeric tokens until we find a number
         while (i < tokens.length) {
           const price = parseFloat(tokens[i]);
@@ -82,4 +85,4 @@ export function parseProducts(input: string): Product[] {
   return products;
 }
 
-//console.log(parseProducts('Napa type tablet quantity nine price 1.7 Minaril quantity 5 price 2.5 '));
+//console.log(parseProducts('Napa type tablet quantity nine unit price 1.7 Minaril quantity 5 price 2.5 '));

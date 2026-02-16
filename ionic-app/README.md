@@ -125,6 +125,8 @@ npx cap open android
 ● Searched for 1 pattern (ctrl+o to expand)
 
 ● Good! The cleartext setting is there. Now in Android Studio:
+# open android studio
+  npx cap open android
 
   Step 4: Complete Rebuild
 
