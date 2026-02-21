@@ -19,17 +19,19 @@ import {
   IonLabel,
   IonInput,
   IonModal,
+  IonSegment,
+  IonSegmentButton,
 } from '@ionic/react';
 import { micOutline, stopOutline } from 'ionicons/icons';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import apiService from '../services/apiService';
 import type { Message } from '../types';
-import { parseProducts, type Product } from '../utils/parseProduct';
+import { parseProductList, type Product } from '../utils/parseProduct';
 
 const VoiceAssistantPage: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   //const [recordingDuration, setRecordingDuration] = useState(0);
-  const [language] = useState<'en' | 'bn'>('en');
+  const [language, setLanguage] = useState<'en' | 'bn'>('bn');
   const [messages, setMessages] = useState<Message[]>([]);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -136,7 +138,7 @@ const VoiceAssistantPage: React.FC = () => {
       // Process the text
       const text = continuedText ? continuedText + ' ' + interimText : interimText.trim();
       if (text) {
-        const products = parseProducts(text);
+        const products = parseProductList(text, language);
         if (products.length === 0) {
           setToastMessage('No products detected in speech. Please try again.');
           setShowToast(true);
@@ -175,13 +177,13 @@ const VoiceAssistantPage: React.FC = () => {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send text to backend
-      await apiService.processText(text, mobileNumber);
+      await apiService.processText(text, mobileNumber, language);
       setMobileNumber('');
       // Add assistant message
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        text: 'Saved successfully. Total price is ' + parseProducts(text).reduce((sum, product) => sum + product.quantity * product.unitPrice, 0).toFixed(2) + ' taka.',
+        text: 'Saved successfully. Total price is ' + parseProductList(text, language).reduce((sum, product) => sum + (product.isUnitPriceEstimated ? product.quantity : 1) * product.unitPrice, 0).toFixed(2) + ' taka.',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -227,16 +229,16 @@ const VoiceAssistantPage: React.FC = () => {
 
   const onCalculateTotal = () => {
     const text = continuedText ? continuedText + ' ' + interimText : interimText;
-    const parsedProducts = parseProducts(text);
+    const parsedProducts = parseProductList(text, language);
     let total = 0;
     parsedProducts.forEach(product => {
-      total += product.unitPrice * product.quantity;
+      total += product.unitPrice * (product.isUnitPriceEstimated ? product.quantity : 1);
     });
     setTotalPrice(`Total: ${total.toFixed(2)}`);
   }
   const onProductEdit = () => {
     const text = continuedText ? continuedText + ' ' + interimText : interimText;
-    const parsedProducts = parseProducts(text);
+    const parsedProducts = parseProductList(text, language);
     setProducts(parsedProducts);
     setShowProductModal(true);
     console.log('Parsed Products:', parsedProducts, text);
@@ -290,9 +292,13 @@ const VoiceAssistantPage: React.FC = () => {
     let total = 0;
     const text: string[] = [];
     products.forEach(product => {
-      total += product.unitPrice * product.quantity;
-      const typeText = product.type ? ` type ${product.type}` : '';
-      text.push(`${product.productName}${typeText} quantity ${product.quantity} price ${product.unitPrice}`);
+      total += product.unitPrice * (product.isUnitPriceEstimated ? product.quantity : 1);
+      if (language === 'en') {
+        const typeText = product.type ? ` type ${product.type}` : '';
+        text.push(`${product.productName}${typeText} quantity ${product.quantity} ${product.isUnitPriceEstimated ? 'unit price' : 'price'} ${product.unitPrice}`);
+      } else {
+        text.push(`${product.productName} ${product.quantity} ${product.unitWord} ${product.unitPrice} টাকা`);
+      }
     });
     setTotalPrice(`Total: ${total.toFixed(2)} taka`);
     const updatedText = text.join(' ');
@@ -346,7 +352,7 @@ const VoiceAssistantPage: React.FC = () => {
           </IonButtons>
           <IonTitle>Voice Assistant</IonTitle>
         </IonToolbar>
-        {/* <IonToolbar>
+        <IonToolbar>
           <IonSegment value={language} onIonChange={(e) => setLanguage(e.detail.value as 'en' | 'bn')}>
             <IonSegmentButton value="en">
               <IonLabel>English</IonLabel>
@@ -355,7 +361,7 @@ const VoiceAssistantPage: React.FC = () => {
               <IonLabel>Bengali</IonLabel>
             </IonSegmentButton>
           </IonSegment>
-        </IonToolbar> */}
+        </IonToolbar>
       </IonHeader>
       <IonContent ref={contentRef} className="ion-padding">
         {!messages || messages.length === 0 ? (
@@ -365,7 +371,7 @@ const VoiceAssistantPage: React.FC = () => {
               <p>1. Press the microphone button to start</p>
               <p>2. Speak product name and quantity and price</p>
               <p style={{ fontSize: '0.875rem', marginTop: '1rem', color: 'var(--ion-color-primary)' }}>
-                Napa type tablet quantity 10 price 1.7 Minaril quantity 5 price 2.5
+                {language === 'en' ? 'Napa type tablet quantity 10 price 1.7 Minaril quantity 5 price 2.5' : 'ওরস্যালাইন পাঁচটি পঁচিশ টাকা মন্টিন দুই পাতা 75 টাকা নিউরো বি এক বোতল ৩০০ টাকা টুথব্রাশ একটি ৭০ টাকা'}
               </p>
             </IonText>
           </div>
@@ -598,7 +604,7 @@ const VoiceAssistantPage: React.FC = () => {
                               {product.type && ` (${product.type})`}
                               <br />
                               Quantity: {product.quantity} | Unit Price: {product.unitPrice} |
-                              Subtotal: {(product.quantity * product.unitPrice).toFixed(2)}
+                              Subtotal: {((product.isUnitPriceEstimated ? product.quantity : 1) * product.unitPrice).toFixed(2)}
                             </p>
                           </IonText>
                         </IonCardContent>

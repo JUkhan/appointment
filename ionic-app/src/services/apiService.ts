@@ -20,7 +20,7 @@ import type {
   AnalyticsRequest,
   AnalyticsResponse,
 } from '../types';
-import { parseProducts } from '../utils/parseProduct';
+import { parseProductList } from '../utils/parseProduct';
 // Flag to prevent multiple concurrent refresh requests
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
@@ -276,9 +276,9 @@ export const apiService = {
   /**
    * Process text for voice assistant
    */
-  async processText(text: string, mobileNumber: string): Promise<ProcessTextResponse> {
+  async processText(text: string, mobileNumber: string, lang: 'bn' | 'en'): Promise<ProcessTextResponse> {
     const clientId = await storageService.getItem(CLIENT_ID);
-    const parsedProducts = parseProducts(text).filter(it => it.quantity > 0).map(product => {
+    const parsedProducts = parseProductList(text, lang).filter(it => it.quantity > 0).map(product => {
       product.type ??= 'None';
       return product;
     });
@@ -287,7 +287,7 @@ export const apiService = {
       //'user_text': text,
       'client_id': clientId,
       'products': parsedProducts,
-      'total_price': parsedProducts.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0),
+      'total_price': parsedProducts.reduce((sum, p) => sum + p.unitPrice * (p.isUnitPriceEstimated ? p.quantity : 1), 0),
       'mobile': mobileNumber
     });
     return response.data;
