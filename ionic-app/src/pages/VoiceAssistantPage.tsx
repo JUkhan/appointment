@@ -45,11 +45,19 @@ const VoiceAssistantPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
   const [mobileNumber, setMobileNumber] = useState('');
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
 
   useEffect(() => {
     requestSpeechPermissions();
     setupSpeechListeners();
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        (err) => console.warn('Geolocation error:', err)
+      );
+    }
 
     return () => {
       SpeechRecognition.removeAllListeners();
@@ -178,7 +186,7 @@ const VoiceAssistantPage: React.FC = () => {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send text to backend
-      await apiService.processText(text, mobileNumber, language);
+      await apiService.processText(text, mobileNumber, language, location?.latitude ?? 0, location?.longitude ?? 0);
       setMobileNumber('');
       // Add assistant message
       const assistantMessage: Message = {
