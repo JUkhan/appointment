@@ -176,8 +176,8 @@ function parseBengaliProducts(input: string): Product[] {
 
     return null;
   }
-
-  // Split input into segments by "টাকা" (taka = currency marker)
+  const endsWithEach = input.trim().endsWith('প্রতিটি');
+  // Split input into segments by "টাকা" "প্রতিটি" (taka = currency marker)
   const segments = input.split('টাকা').map(s => s.trim()).filter(Boolean);
 
   const products: Product[] = [];
@@ -231,8 +231,13 @@ function parseBengaliProducts(input: string): Product[] {
     const productName = words.slice(0, nameEnd).join(' ').trim();
 
     // Skip prefix words like "ওর" (his/her) if it's the very first segment
-    const cleanedName = productName/*.replace(/^(ওর|আর|ও)\s+/i, '')*/.trim();
-
+    let cleanedName = productName/*.replace(/^(ওর|আর|ও)\s+/i, '')*/.trim();
+    if (cleanedName.startsWith('প্রতিটি')) {
+      cleanedName = cleanedName.replace(/^প্রতিটি\s+/i, '').trim();
+      if (products.length > 0) {
+        products[products.length - 1].isUnitPriceEstimated = true;
+      }
+    }
     if (cleanedName) {
       products.push({
         productName: cleanedName,
@@ -243,14 +248,17 @@ function parseBengaliProducts(input: string): Product[] {
       });
     }
   }
+  if (endsWithEach && products.length > 0) {
+    products[products.length - 1].isUnitPriceEstimated = true;
+  }
 
   return products;
 }
 
 // ---- Test ----
-//const input =
-// 'ওরস্যালাইন পাঁচটি পঁচিশ টাকা মন্টিন দুই পাতা 75 টাকা নিউরো বি এক বোতল ৩০০ টাকা টুথব্রাশ একটি ৭০ টাকা';
+// const input =
+//   'ওরস্যালাইন পাঁচটি পঁচিশ টাকা মন্টিন দুই পাতা 75 টাকা প্রতিটি নিউরো বি এক বোতল ৩০০ টাকা টুথব্রাশ একটি ৭০ টাকা';
 
-//console.log(parseBengaliProducts(input));
+// console.log(parseBengaliProducts(input));
 
 //console.log(parseProducts('Napa type tablet quantity unit price  Minaril quantity 5 price 2.5 '));

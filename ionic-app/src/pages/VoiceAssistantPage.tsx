@@ -17,6 +17,7 @@ import {
   IonButton,
   IonItem,
   IonLabel,
+  IonCheckbox,
   IonInput,
   IonModal,
   IonSegment,
@@ -275,7 +276,7 @@ const VoiceAssistantPage: React.FC = () => {
     setEditingProductIndex(index);
   };
 
-  const handleProductFieldChange = (index: number, field: keyof Product, value: string | number) => {
+  const handleProductFieldChange = (index: number, field: keyof Product, value: string | number | boolean) => {
     const updatedProducts = [...products];
     if (field === 'quantity' || field === 'unitPrice') {
       updatedProducts[index] = { ...updatedProducts[index], [field]: Number(value) };
@@ -297,7 +298,7 @@ const VoiceAssistantPage: React.FC = () => {
         const typeText = product.type ? ` type ${product.type}` : '';
         text.push(`${product.productName}${typeText} quantity ${product.quantity} ${product.isUnitPriceEstimated ? 'unit price' : 'price'} ${product.unitPrice}`);
       } else {
-        text.push(`${product.productName} ${product.quantity} ${product.unitWord} ${product.unitPrice} টাকা`);
+        text.push(`${product.productName} ${product.quantity} ${product.unitWord} ${product.unitPrice} ${product.isUnitPriceEstimated ? 'টাকা প্রতিটি' : 'টাকা'}`);
       }
     });
     setTotalPrice(`Total: ${total.toFixed(2)} taka`);
@@ -566,12 +567,17 @@ const VoiceAssistantPage: React.FC = () => {
                             />
                           </IonItem>
                           <IonItem>
-                            <IonLabel position="stacked">Unit Price</IonLabel>
+                            <IonLabel position="stacked">{product.isUnitPriceEstimated ? 'Unit Price' : 'Price'}</IonLabel>
                             <IonInput
                               type="number"
                               value={product.unitPrice}
                               onIonInput={(e) => handleProductFieldChange(index, 'unitPrice', e.detail.value!)}
                             />
+                          </IonItem>
+                          <IonItem>
+                            <IonCheckbox labelPlacement="end" checked={product.isUnitPriceEstimated} onIonChange={(e) => handleProductFieldChange(index, 'isUnitPriceEstimated', e.detail.checked)} >
+                              Is Unit Price Estimated?
+                            </IonCheckbox>
                           </IonItem>
                           <IonButton
                             onClick={handleProductEditDone}
